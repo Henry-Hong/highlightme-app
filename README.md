@@ -1,0 +1,3 @@
+# NEVER USE NPM!!
+
+# MUST USE YARN!!
