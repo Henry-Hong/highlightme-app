@@ -1,10 +1,13 @@
 import { Router } from "express";
-import test from "./tests.controller";
+
+import tests from "./tests.controller";
+import users from "./users.controller";
 
 export default () => {
   const app = Router();
 
-  test(app);
+  tests(app);
+  users(app);
 
   return app;
 };

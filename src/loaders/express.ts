@@ -6,8 +6,8 @@ import express, {
 } from "express";
 import cors from "cors";
 
-import routes from "./routes";
-import config from "./config";
+import routes from "../routes";
+import config from "../config";
 
 export default (app: express.Application) => {
   /**
@@ -22,6 +22,11 @@ export default (app: express.Application) => {
   // Alternate description:
   // Enable Cross Origin Resource Sharing to all origins by default
   app.use(cors());
+
+  // Middleware that transforms the raw string of req.body into json
+  // Bodyparser deprecated so use internal features
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
 
   // Middleware that transforms the raw string of req.body into json
   // app.use(bodyParser.json());
