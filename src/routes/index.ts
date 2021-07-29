@@ -1,8 +1,8 @@
 import { Router } from "express";
 
-import tests from "./tests.controller";
-import users from "./users.controller";
-import cls from "./cls.controller";
+import tests from "./tests";
+import users from "./users";
+import cls from "./cls";
 
 export default () => {
   const app = Router();
