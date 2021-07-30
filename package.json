@@ -16,6 +16,8 @@
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
+    "mecab-ko": "^0.4.1",
+    "mecab-ya": "^0.1.1",
     "reflect-metadata": "^0.1.13",
     "typedi": "^0.10.0",
     "winston": "^3.3.3",

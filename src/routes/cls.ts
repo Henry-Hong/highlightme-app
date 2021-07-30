@@ -34,17 +34,15 @@ export default (app: Router) => {
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
       // logger.debug("Calling Sign-In endpoint with body: %o", req.body);
-      console.log(req.body.cls);
+
+      const { comment } = req.body;
 
       try {
         // const { email, password } = req.body;
-        // const userServiceInstance = Container.get(UserService);
-        // const { user, token } = await userServiceInstance.SignIn(
-        //   email,
-        //   password
-        // );
+        const clServiceInstance = Container.get(CLService);
+        const { result } = await clServiceInstance.uploadCL(comment);
         // console.log(req.body.cls);
-        return res.json({ yes: "yes" }).status(200);
+        return res.json({ result: result }).status(200);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
