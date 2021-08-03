@@ -1,22 +1,23 @@
 import { Container } from "typedi";
 import LoggerInstance from "./logger";
+import mysql2 from "mysql2/promise";
 import config from "../config";
-import mysql from "mysql";
 
 export default ({
-  // dbConnection,
+  db,
   models,
 }: {
-  // dbConnection;
+  db: mysql2.Connection;
   models: { name: string; model: any }[];
 }) => {
   try {
     models.forEach((m) => {
       Container.set(m.name, m.model);
     });
-    // Container.set("db", dbConnection);
+
+    Container.set("db", db);
     Container.set("logger", LoggerInstance);
-    LoggerInstance.error("🔥 logger and db injected into container!");
+    LoggerInstance.info("🔥 logger and db injected into container!");
   } catch (e) {
     LoggerInstance.error("🔥 Error on dependency injector loader: %o", e);
     throw e;
