@@ -15,26 +15,15 @@ if (dotenvResult.error) {
 }
 
 export default {
-  /**
-   * Your favorite port
-   */
   port: process.env.PORT,
-
-  /**
-   * Used by winston logger
-   */
   logs: {
     level: process.env.LOG_LEVEL || "silly",
   },
-
-  /**
-   * That long string from mlab
-   */
-  databaseURL: process.env.MONGODB_URI,
-
-  /**
-   * API configs
-   */
+  dbURL: process.env.DB_URL, //databaseURL: process.env.MONGODB_URI,
+  dbPassword: "Marare12#$", //dbPassword: process.env.AURORADB_PW,
+  dbPort: 3306,
+  dbUser: "admin",
+  dbName: "highlightme_aurora",
   api: {
     prefix: "/api",
   },

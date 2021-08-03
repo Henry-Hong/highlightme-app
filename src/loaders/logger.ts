@@ -24,6 +24,9 @@ const transports = [
     maxFiles: 30,
     zippedArchive: true,
   }),
+  new winston.transports.Console({
+    level: "debug", // debug이상 콘솔 출력
+  }),
 ];
 // if (process.env.NODE_ENV !== "development") {
 //   transports.push(new winston.transports.Console());

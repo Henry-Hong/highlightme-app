@@ -7,7 +7,6 @@ import config from "./config";
 
 async function startServer() {
   const app = express();
-
   /**
    * A little hack here
    * Import/Export can only be used in 'top-level code'
