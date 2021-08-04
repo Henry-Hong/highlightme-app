@@ -20,27 +20,29 @@ export default (app: Router) => {
     celebrate({
       [Segments.BODY]: Joi.object({
         user_id: Joi.string().required(),
-        comment: Joi.string().required(),
-        cl_elements: Joi.required(),
-        // cl_elements: Joi.array().items(
-        //   Joi.object({
-        //     problem: Joi.string(),
-        //     answer: Joi.string(),
-        //     // public: Joi.boolean().required(),
-        //   })
-        // ),
+        cl_element_id: Joi.required
+        problem: Joi.string().required(),
+        answer: Joi.string().required(),
+        _public: Joi.boolean().required(), //프론트에서 무적권1
+        // token: Joi.string().required()
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
       // logger.debug("Calling Sign-In endpoint with body: %o", req.body);
-
-      const { comment } = req.body;
+/////////////////////////////
+      // const { comment } = req.body;
 
       try {
-        // const { email, password } = req.body;
+        const { user_id, cl_element_id, problem, answer, _public } = req.body;
         const clServiceInstance = Container.get(CLService);
-        const { result } = await clServiceInstance.uploadCL(comment);
+        const { result } = await clServiceInstance.uploadCL(
+          user_id,
+          cl_element_id,
+          problem,
+          answer,
+          _public
+        );
         // console.log(req.body.cls);
         return res.json({ result: result }).status(200);
       } catch (e) {
