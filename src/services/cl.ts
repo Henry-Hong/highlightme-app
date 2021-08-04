@@ -1,4 +1,5 @@
-import { Service, Inject } from "typedi";
+import { Container, Service, Inject } from "typedi";
+import mysql2 from "mysql2/promise";
 import config from "../config";
 import { randomBytes } from "crypto";
 import { Logger } from "winston";
@@ -9,28 +10,49 @@ import { ICL } from "../interfaces/ICL";
 @Service()
 export default class CLService {
   constructor(@Inject("logger") private logger: Logger) {}
-  //왜 로그찍는부품을 생성자에 주입하는지? 왜 생성자에 private이 있는지?
-  //생각해보니 이 생성자함수는 코드가 아무것도없네. 매개변수로 logger를 받기만하네. 결국 아무것도 안하고있네.
 
-  public async uploadCL(text: string): Promise<{ result: string[] }> {
-    // cl.elements.forEach((e) => {
-    //   e.answer.search("");
-    // });
+  //자기소개서 등록할때
+  public async makeCLE(
+    user_id: number, //토큰으로 대체될예정
+    cl_element_id: number,
+    problem: string,
+    answer: string,
+    _public: number //공개여부는 일단 무적권 1
+  ): Promise<{ token: string }> {
+    //디비 인스턴스가져오기
+    const db = Container.get<mysql2.Connection>("db");
 
-    return { result: await this.getNouns(text) };
+    const queryCLElement =
+      "INSERT INTO CLElement VALUES (?, ?, ?, ?, NOW(), NOW())";
+    const [clElementResult] = await db.query(queryCLElement, [
+      user_id, //user_id
+      "", //comment
+      0, //view_num
+      0, //user_question_num
+    ]);
+
+    if (!clElementResult) {
+      console.log("자기소개서문항 넣기 실패");
+    }
+
+    // User->CL->CLElement
+    // cl_element_id에 해당하는 로우를 CLElment에서 찾기 : findOne
+    //
+    //
+
+    const query = "SELECT * FROM User WHERE email = ?";
+    const [user] = await db.query(query, [email]);
+
+    // 데이터 넣어버리기!! ㅎㅎ
+
+    return { token: "success!" };
   }
 
-  //private임을 잘봐라. public에서 이 함수를 사용한다.
-  private getNouns(text: string): Promise<string[]> {
-    //명사를 얻는 함수. string을 입력받아서, Promise를 반환
-    return new Promise((resolve) => {
-      //Promise를 리턴. 이런패턴많이쓴다.
-      nouns(text, (err: Error, result: string[]) => {
-        //nouns는 text와 콜백을 매개변수로받음.
-        console.log(result);
+  //자기소개서항목 추가할때
+  // 해당 used_id로 cl_element_id를 서버에서 새로만들고, return cl_element_id
+  //자기소개서항목 삭제할때
 
-        resolve(result);
-      });
-    });
-  }
+  //자기소개서 수정할때
+  //자기소개서 삭제할때
+  //자기소게서
 }

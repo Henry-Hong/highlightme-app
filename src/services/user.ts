@@ -46,6 +46,7 @@ export default class UserService {
     }
 
     const salt = "wanna go home";
+    //const salt = createSalt();
 
     const derivedKey = await getDerivedKey(
       password,
@@ -63,7 +64,51 @@ export default class UserService {
   }
 
   //회원가입기능
-  public async SignUp() {}
+  public async SignUp(
+    email: string,
+    password: string,
+    nickname: string,
+    fieldIds: number[]
+  ): Promise<{ token: string }> {
+    // 1. 커넥션
+    const db = Container.get<mysql2.Connection>("db");
+
+    // 2. 이메일 벨리데이션 -> 이메일 중복확인
+    const emailValidationQuery = "SELECT COUNT(*) FROM User WHERE email = ?";
+    const [counts] = await db.query(emailValidationQuery, [email]);
+    if (parseInt(counts) > 0) {
+      console.log("이미 있는 이메일입니다.");
+    }
+
+    // 3. 중복아니면 DB에 넣기
+    const userInsertQuery =
+      "INSERT INTO User VALUES (?, ?, ?, ?, NOW(), NOW())";
+    // password를 암호화해서 넣어주는 코드가 필요해요 나중에 hasher라는 함수로 만들어줘도될듯
+    // const salt = createSalt();
+    // const derivedKey = await getDerivedKey(
+    //   password,
+    //   salt,
+    //   100000,
+    //   64,
+    //   "sha512"
+    // );
+    // password = derivedKey.toString('hex')
+    const [userInsertResult] = await db.query(userInsertQuery, [
+      email,
+      password,
+      nickname,
+      0,
+    ]);
+    if (!userInsertResult) {
+      console.log("유저생성실패");
+    }
+
+    // 4. token 넘겨주기!
+    // 4-1. 토큰생성
+    // 4-2. 토큰리턴
+    // return { token: "failed" }
+    // return { token: "success" }
+  }
 }
 
 async function getDerivedKey(
