@@ -33,17 +33,8 @@ export default class CLService {
 
     if (!clElementResult) {
       console.log("자기소개서문항 넣기 실패");
+      return { token: "fail!" };
     }
-
-    // User->CL->CLElement
-    // cl_element_id에 해당하는 로우를 CLElment에서 찾기 : findOne
-    //
-    //
-
-    const query = "SELECT * FROM User WHERE email = ?";
-    const [user] = await db.query(query, [email]);
-
-    // 데이터 넣어버리기!! ㅎㅎ
 
     return { token: "success!" };
   }

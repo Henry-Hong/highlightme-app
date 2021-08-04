@@ -19,11 +19,11 @@ export default (app: Router) => {
     "/",
     celebrate({
       [Segments.BODY]: Joi.object({
-        user_id: Joi.string().required(),
-        cl_element_id: Joi.required,
+        user_id: Joi.number().required(),
+        cl_element_id: Joi.number().required(),
         problem: Joi.string().required(),
         answer: Joi.string().required(),
-        _public: Joi.boolean().required(), //프론트에서 무적권1
+        _public: Joi.number().required(), //프론트에서 무적권1
         // token: Joi.string().required()
       }),
     }),
