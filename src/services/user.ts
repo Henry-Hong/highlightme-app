@@ -76,9 +76,9 @@ export default class UserService {
     // 2. 이메일 벨리데이션 -> 이메일 중복확인
     const emailValidationQuery = "SELECT COUNT(*) FROM User WHERE email = ?";
     const [counts] = await db.query(emailValidationQuery, [email]);
-    if (parseInt(counts) > 0) {
-      console.log("이미 있는 이메일입니다.");
-    }
+    // if (parseInt(counts) > 0) {
+    //   console.log("이미 있는 이메일입니다.");
+    // }
 
     // 3. 중복아니면 DB에 넣기
     const userInsertQuery =
@@ -107,7 +107,7 @@ export default class UserService {
     // 4-1. 토큰생성
     // 4-2. 토큰리턴
     // return { token: "failed" }
-    // return { token: "success" }
+    return { token: "success" };
   }
 }
 

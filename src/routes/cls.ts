@@ -11,10 +11,6 @@ const route = Router();
 export default (app: Router) => {
   app.use("/cls", route);
 
-  route.get("/", (req: Request, res: Response) => {
-    return res.json({ msg: "yes this is /tests" }).status(200);
-  });
-
   route.post(
     "/",
     celebrate({
@@ -23,7 +19,7 @@ export default (app: Router) => {
         cl_element_id: Joi.number().required(),
         problem: Joi.string().required(),
         answer: Joi.string().required(),
-        _public: Joi.number().required(), //프론트에서 무적권1
+        _public: Joi.number().required(),
         // token: Joi.string().required()
       }),
     }),

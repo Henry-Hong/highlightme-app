@@ -11,7 +11,7 @@ import { ICL } from "../interfaces/ICL";
 export default class CLService {
   constructor(@Inject("logger") private logger: Logger) {}
 
-  //자기소개서 등록할때
+  //자기소개서항목 등록 & 수정 할때
   public async makeCLE(
     user_id: number, //토큰으로 대체될예정
     cl_element_id: number,
@@ -19,16 +19,15 @@ export default class CLService {
     answer: string,
     _public: number //공개여부는 일단 무적권 1
   ): Promise<{ token: string }> {
-    //디비 인스턴스가져오기
     const db = Container.get<mysql2.Connection>("db");
 
     const queryCLElement =
-      "INSERT INTO CLElement VALUES (?, ?, ?, ?, NOW(), NOW())";
+      "INSERT INTO CLElement (cl_element_id, cl_id, problem, answer, public, modified_at, created_at) VALUES (?, 1, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE problem=problem, answer=answer, modified_at=NOW()";
     const [clElementResult] = await db.query(queryCLElement, [
-      user_id, //user_id
-      "", //comment
-      0, //view_num
-      0, //user_question_num
+      cl_element_id,
+      problem,
+      answer,
+      _public,
     ]);
 
     if (!clElementResult) {
@@ -39,11 +38,6 @@ export default class CLService {
     return { token: "success!" };
   }
 
-  //자기소개서항목 추가할때
-  // 해당 used_id로 cl_element_id를 서버에서 새로만들고, return cl_element_id
-  //자기소개서항목 삭제할때
-
-  //자기소개서 수정할때
-  //자기소개서 삭제할때
-  //자기소게서
+  //자기소개서항목 추가
+  //자기소개서항목 삭제
 }
