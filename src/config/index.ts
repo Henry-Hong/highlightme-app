@@ -19,11 +19,11 @@ export default {
   logs: {
     level: process.env.LOG_LEVEL || "silly",
   },
-  dbURL: process.env.DB_URL, //databaseURL: process.env.MONGODB_URI,
-  dbPassword: "Marare12#$", //dbPassword: process.env.AURORADB_PW,
-  dbPort: 3306,
-  dbUser: "admin",
-  dbName: "highlightme_aurora",
+  dbURL: process.env.DB_URL,
+  dbPort: process.env.DB_PORT,
+  dbUser: process.env.DB_USER,
+  dbName: process.env.DB_NAME,
+  dbPassword: process.env.DB_PW,
   api: {
     prefix: "/api",
   },
