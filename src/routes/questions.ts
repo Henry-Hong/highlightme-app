@@ -25,19 +25,17 @@ export default (app: Router) => {
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
-      // const logger: Logger = Container.get("logger");
-      // logger.debug("Calling Sign-In endpoint with body: %o", req.body);
-      // const { comment } = req.body;
-
+      const logger: Logger = Container.get("logger");
+      logger.debug("Calling questionList endpoint : %o", req.query);
       try {
-        const { keyword } = req.query;
-        const _keyword = keyword?.toString(); //keyword가 undefined인 경우에는 toString() 하지 않는다.
+        const keyword_id = req.query.keyword as string;
         const questionServiceInstance = Container.get(QuestionService);
-        const { token } = await questionServiceInstance.questionList(_keyword);
-
-        return res.json({ result: token }).status(200);
+        const { token, content } = await questionServiceInstance.questionList(
+          parseInt(keyword_id)
+        );
+        return res.json({ result: content }).status(200);
       } catch (e) {
-        // logger.error("🔥 error: %o", e);
+        logger.error("🔥 error: %o", e);
         return next(e);
       }
     }

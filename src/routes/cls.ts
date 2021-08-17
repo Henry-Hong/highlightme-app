@@ -24,9 +24,8 @@ export default (app: Router) => {
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
-      // const logger: Logger = Container.get("logger");
-      // logger.debug("Calling Sign-In endpoint with body: %o", req.body);
-      // const { comment } = req.body;
+      const logger: Logger = Container.get("logger");
+      logger.debug("Calling CL CRUD apis : %o", req.body);
 
       try {
         const { user_id, cl_element_id, problem, answer, _public } = req.body;
@@ -41,7 +40,7 @@ export default (app: Router) => {
         // console.log(req.body.cls);
         return res.json({ result: token }).status(200);
       } catch (e) {
-        // logger.error("🔥 error: %o", e);
+        logger.error("🔥 error: %o", e);
         return next(e);
       }
     }
