@@ -5,9 +5,13 @@ import path from "path";
 // process.env.NODE_ENV = process.env.NODE_ENV || "development";
 let dotenvResult;
 if (process.env.NODE_ENV === "production") {
-  dotenvResult = dotenv.config({ path: path.join(__dirname, "./.prod.env") });
+  dotenvResult = dotenv.config({
+    path: path.join(__dirname, "../../env/.prod.env"),
+  });
 } else {
-  dotenvResult = dotenv.config({ path: path.join(__dirname, "./.dev.env") });
+  dotenvResult = dotenv.config({
+    path: path.join(__dirname, "../../env/.dev.env"),
+  });
 }
 if (dotenvResult.error) {
   // This error should crash whole process

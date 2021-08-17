@@ -1,6 +1,6 @@
 import "reflect-metadata"; // We need this in order to use @Decorators
 
-import express, { Router } from "express";
+import express, { Router, Request, Response } from "express";
 
 import loader from "./loaders";
 import config from "./config";
@@ -14,6 +14,10 @@ async function startServer() {
    * So we are using good old require.
    **/
   await loader(app);
+
+  app.get("/", (req: Request, res: Response) => {
+    res.status(200).send("<h1>Server Aliveasdfasdfasdfas!</h1>");
+  });
 
   app.listen(config.port, () => {
     console.log(`Express.js listening on port ${config.port}`);

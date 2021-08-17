@@ -7,7 +7,8 @@ COPY ./tsconfig.json ./
 COPY ./src ./src
 COPY ./env ./env
 
-RUN yarn
+RUN npm install
+RUN npm run build
 
 EXPOSE 3001
 
