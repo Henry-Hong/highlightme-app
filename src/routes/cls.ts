@@ -4,7 +4,11 @@ import { celebrate, Joi, Segments } from "celebrate";
 import { Logger } from "winston";
 
 import CLService from "../services/cl";
+import config from "../config";
 import { IUserInputDTO } from "../interfaces/IUser";
+import { resourceLimits } from "worker_threads";
+import TestService from "../services/test";
+import KeywordService from "../services/keyword";
 
 const route = Router();
 
@@ -37,6 +41,17 @@ export default (app: Router) => {
           answer,
           _public
         );
+
+        //ce야 내가 자소서 보내줄테니까 키워드 목록 보내줘!
+        //그리고 DB에 저장해줘! 에 대한 내용이 담긴 함수를 불러오기
+        const keywordServiceInstance = Container.get(KeywordService);
+        const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
+          answer,
+          cl_element_id
+        );
+
+        console.log("결과는~" + result);
+
         // console.log(req.body.cls);
         return res.json({ result: token }).status(200);
       } catch (e) {

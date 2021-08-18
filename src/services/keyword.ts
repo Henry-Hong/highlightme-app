@@ -1,44 +1,66 @@
 import { Container, Service, Inject } from "typedi";
 import mysql2 from "mysql2/promise";
 import config from "../config";
-import { randomBytes } from "crypto";
 import { Logger } from "winston";
-import { nouns } from "mecab-ya";
-
-import { ICL } from "../interfaces/ICL";
 
 @Service()
-export default class CLService {
+export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
 
-  // 특정 키워드에 대한 question 리스트를 받을때
-  public async questionList(
-    user_keyword_id: number
-  ): Promise<{ token: object; content: object }> {
-    const questionInfoResults = await this.getQuestionsInfo(user_keyword_id);
+  public async putKeywordsInfoAfterCE(
+    answer: string,
+    cl_element_id: number
+  ): Promise<number> {
+    try {
+      //1. ce야 내가 자소서 보내줄테니까 키워드 목록 보내줘! ->이제 node서버가 클라이언트가 되는거고, ce서버가 서버가되는거임.
+      const ceResult = await fetch(config.ceServerURL + "/keywords", {
+        method: "GET",
+        body: new URLSearchParams({
+          elements: JSON.stringify([answer]),
+        }),
+      });
+      const data: any[] = await ceResult.json(); //assuming data is json
 
-    if (!questionInfoResults) {
-      console.log("질문목록 뽑아오기 실패!");
-      return { token: {}, content: {} };
+      //2. UserKeyword 테이블에다가 키워드를 넣습니다.
+      const db = Container.get<mysql2.Connection>("db");
+
+      let rows: any[] = [];
+      data.forEach((keyword) => {
+        let row = [];
+        row.push(keyword.id);
+        row.push(2); //row.push(user_id);
+        row.push(0); //answered, 0은상수 -> 상수관리는 나중에 알아보도록.. ㅠ
+        row.push(1); //fromcl
+        row.push(1); //is_ready
+
+        rows.push(row);
+      });
+      const queryUserkeyword = `
+        INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
+        VALUES ?`;
+      const [userKeywordResult] = (await db.query(queryUserkeyword, [
+        rows,
+      ])) as any;
+
+      //3. FromCL 테이블에 userKeywordResult.insertId를 이용해서 넣어야됨
+      let rows2: any[] = [];
+
+      for (let e = 0; e < data.length; e++) {
+        let row = [];
+        row.push(userKeywordResult.insertId + e);
+        row.push(cl_element_id);
+        row.push(data[e].index);
+
+        rows2.push(row);
+      }
+
+      const queryFromCL = `
+      INSERT INTO FromCL(user_keyword_id, cl_element_id, index)
+      VALUES ?`;
+      const [fromClResult] = await db.query(queryFromCL, [rows2]);
+      return 1; //success
+    } catch (error) {
+      return 0;
     }
-
-    return {
-      token: {},
-      content: questionInfoResults,
-    };
   }
-
-  public async getQuestionsInfo(user_keyword_id: number): Promise<object> {
-    const db = Container.get<mysql2.Connection>("db");
-    const queryQuestionInfo =
-      "SELECT * FROM Question WHERE question_id IN (SELECT question_id FROM UserQuestion WHERE user_keyword_id = (?))";
-    const [questionInfoResult] = await db.query(queryQuestionInfo, [
-      user_keyword_id,
-    ]);
-
-    return questionInfoResult;
-  }
-
-  //자기소개서항목 추가
-  //자기소개서항목 삭제
 }

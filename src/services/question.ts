@@ -8,7 +8,7 @@ import { nouns } from "mecab-ya";
 import { ICL } from "../interfaces/ICL";
 
 @Service()
-export default class CLService {
+export default class questionService {
   constructor(@Inject("logger") private logger: Logger) {}
 
   // 특정 키워드에 대한 question 리스트를 받을때
