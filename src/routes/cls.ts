@@ -16,7 +16,7 @@ export default (app: Router) => {
     celebrate({
       [Segments.BODY]: Joi.object({
         user_id: Joi.number().required(),
-        cl_element_id: Joi.number().required(),
+        // cl_element_id: Joi.number().required(),
         problem: Joi.string().required(),
         answer: Joi.string().required(),
         _public: Joi.number().required(),
@@ -29,7 +29,8 @@ export default (app: Router) => {
       // const { comment } = req.body;
 
       try {
-        const { user_id, cl_element_id, problem, answer, _public } = req.body;
+        const cl_element_id = 0;
+        const { user_id, problem, answer, _public } = req.body;
         const clServiceInstance = Container.get(CLService);
         const { token } = await clServiceInstance.makeCLE(
           user_id,
