@@ -10,29 +10,28 @@ const route = Router();
 
 //localhost:3001/api/questions
 export default (app: Router) => {
-  app.use("/questions", route);
+  app.use("/keywords", route);
 
-  //localhost:3001/api/questions?keyword=블라블라
-  //user_keyword_id로 처리할것인지 -> 키워드 api에서 뷰화면에 뿌려질때, id도 같이 return 해줘야되는데.. 아마 같이 return 해주겠지?
+  //localhost:3001/api/keywords
   route.get(
     "/",
     celebrate({
       [Segments.BODY]: Joi.object({
-        // 토큰밖에 확인할게없다. 토큰은 헤더값으로 들어가는걸로 알고있음!
         // user_id: Joi.number().required(),
         // token: Joi.string().required()
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug("Calling questionList endpoint : %o", req.query);
+      logger.debug("Calling keywords endpoint");
       try {
-        const user_keyword_id = req.query.keyword as string;
-        const questionServiceInstance = Container.get(QuestionService);
-        const { token, content } = await questionServiceInstance.questionList(
-          parseInt(user_keyword_id)
-        );
-        return res.json({ result: content }).status(200);
+        // const keyword_id = req.query.keyword as string;
+        // const questionServiceInstance = Container.get(QuestionService);
+        // const { token, content } = await questionServiceInstance.questionList(
+        //   parseInt(keyword_id)
+        // );
+        // return res.json({ result: content }).status(200);
+        return res.send("hello").status(200);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
