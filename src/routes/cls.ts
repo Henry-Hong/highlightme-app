@@ -4,13 +4,18 @@ import { celebrate, Joi, Segments } from "celebrate";
 import { Logger } from "winston";
 
 import CLService from "../services/cl";
+import config from "../config";
 import { IUserInputDTO } from "../interfaces/IUser";
+import { resourceLimits } from "worker_threads";
+import TestService from "../services/test";
+import KeywordService from "../services/keyword";
 
 const route = Router();
 
 export default (app: Router) => {
   app.use("/cls", route);
 
+  //POST localhost:3001/api/cls
   route.post(
     "/",
     celebrate({
@@ -24,25 +29,25 @@ export default (app: Router) => {
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
-      // const logger: Logger = Container.get("logger");
-      // logger.debug("Calling Sign-In endpoint with body: %o", req.body);
-      // const { comment } = req.body;
+      const logger: Logger = Container.get("logger");
+      logger.debug("Calling CL CRUD apis : %o", req.body);
 
       try {
         const cl_element_id = 0;
         const { user_id, problem, answer, _public } = req.body;
         const clServiceInstance = Container.get(CLService);
-        const { token } = await clServiceInstance.makeCLE(
+        const result = await clServiceInstance.makeCLE(
           user_id,
           cl_element_id,
           problem,
           answer,
-          _public
+          cl_element_id
         );
-        // console.log(req.body.cls);
-        return res.json({ result: token }).status(200);
+
+        return res.json(result).status(200);
+        // return res.json({ result: token }).status(200);
       } catch (e) {
-        // logger.error("🔥 error: %o", e);
+        logger.error("🔥 error: %o", e);
         return next(e);
       }
     }
