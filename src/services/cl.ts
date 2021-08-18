@@ -21,8 +21,11 @@ export default class CLService {
   ): Promise<{ token: string }> {
     const db = Container.get<mysql2.Connection>("db");
 
-    const queryCLElement =
-      "INSERT INTO CLElement (cl_element_id, cl_id, problem, answer, public, modified_at, created_at) VALUES (?, 1, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE problem=problem, answer=answer, modified_at=NOW()";
+    const queryCLElement = `
+        INSERT INTO CLElement (cl_element_id, cl_id, problem, answer, public, modified_at, created_at)
+        VALUES(?, 1, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE problem = problem, answer = answer, modified_at = NOW()`;
+
     const [clElementResult] = await db.query(queryCLElement, [
       cl_element_id,
       problem,
