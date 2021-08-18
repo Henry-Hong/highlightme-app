@@ -6,4 +6,6 @@ node_modules/
 # Log
 logs/
 
+
+# Build result
 build/
