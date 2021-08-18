@@ -15,6 +15,7 @@ const route = Router();
 export default (app: Router) => {
   app.use("/cls", route);
 
+  //POST localhost:3001/api/cls
   route.post(
     "/",
     celebrate({
@@ -33,14 +34,14 @@ export default (app: Router) => {
 
       try {
         const { user_id, cl_element_id, problem, answer, _public } = req.body;
-        const clServiceInstance = Container.get(CLService);
-        const { token } = await clServiceInstance.makeCLE(
-          user_id,
-          cl_element_id,
-          problem,
-          answer,
-          _public
-        );
+        // const clServiceInstance = Container.get(CLService);
+        // const { token } = await clServiceInstance.makeCLE(
+        //   user_id,
+        //   cl_element_id,
+        //   problem,
+        //   answer,
+        //   _public
+        // );
 
         //ce야 내가 자소서 보내줄테니까 키워드 목록 보내줘!
         //그리고 DB에 저장해줘! 에 대한 내용이 담긴 함수를 불러오기
@@ -50,10 +51,8 @@ export default (app: Router) => {
           cl_element_id
         );
 
-        console.log("결과는~" + result);
-
-        // console.log(req.body.cls);
-        return res.json({ result: token }).status(200);
+        return res.json(result).status(200);
+        // return res.json({ result: token }).status(200);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);

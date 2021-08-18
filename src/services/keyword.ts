@@ -20,6 +20,18 @@ export default class KeywordService {
         }),
       });
       const data: any[] = await ceResult.json(); //assuming data is json
+      // const data = [
+      //   {
+      //     id: 1, //keyword_id
+      //     index: 1004, //index in CL element
+      //     type: 0, //0: main, 1: related, 2: custom
+      //   },
+      //   {
+      //     id: 2,
+      //     index: 486,
+      //     type: 0, //type이 전부다 main 이라는 가정하에,,, ㅎㅎ
+      //   },
+      // ];
 
       //2. UserKeyword 테이블에다가 키워드를 넣습니다.
       const db = Container.get<mysql2.Connection>("db");
@@ -55,11 +67,13 @@ export default class KeywordService {
       }
 
       const queryFromCL = `
-      INSERT INTO FromCL(user_keyword_id, cl_element_id, index)
+      INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index)
       VALUES ?`;
       const [fromClResult] = await db.query(queryFromCL, [rows2]);
+
       return 1; //success
     } catch (error) {
+      console.log(error);
       return 0;
     }
   }
