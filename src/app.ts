@@ -16,7 +16,7 @@ async function startServer() {
   await loader(app);
 
   app.listen(config.port, () => {
-    console.log(`Express.js listening on port ${config.port}`);
+    console.log(`Express.js listening on port... ${config.port}`);
   });
 }
 

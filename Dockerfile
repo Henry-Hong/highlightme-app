@@ -8,6 +8,7 @@ COPY ./src ./src
 COPY ./env ./env
 
 RUN yarn
+RUN yarn build
 
 EXPOSE 3001
 
