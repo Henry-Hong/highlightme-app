@@ -1,6 +1,6 @@
 FROM node:16
 
-WORKDIR /highlightme-node/
+WORKDIR /usr/highlightme-app/
 
 COPY ./package*.json ./
 COPY ./tsconfig.json ./
