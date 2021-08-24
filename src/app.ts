@@ -1,4 +1,4 @@
-import "reflect-metadata"; // We need this in order to use @Decorators
+import "reflect-metadata"; // We need this in order to use @Decorators of typedi
 
 import express, { Router, Request, Response } from "express";
 
@@ -7,12 +7,6 @@ import config from "./config";
 
 async function startServer() {
   const app = express();
-  /**
-   * A little hack here
-   * Import/Export can only be used in 'top-level code'
-   * Well, at least in node 10 without babel and at the time of writing
-   * So we are using good old require.
-   **/
   await loader(app);
 
   app.get("/", (req: Request, res: Response) => {

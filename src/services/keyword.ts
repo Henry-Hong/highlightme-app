@@ -7,6 +7,30 @@ import { Logger } from "winston";
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
 
+  public async getUserKeywords(
+    user_id: number
+  ): Promise<{ keyword: string; id: number }[]> {
+    try {
+      const db = Container.get<mysql2.Connection>("db");
+
+      const queryUserKeyword = `
+        SELECT keyword, keyword_id FROM Keyword WHERE keyword_id IN (SELECT keyword_id FROM UserKeyword WHERE user_id = ?)`;
+      const [result] = (await db.query(queryUserKeyword, [user_id])) as any;
+
+      // console.log(result);
+
+      let ks: { keyword: string; id: number }[] = [];
+      for (let keyword of result) {
+        ks.push({ keyword: keyword.keyword, id: keyword.keyword_id });
+      }
+
+      return ks; //success
+    } catch (error) {
+      console.log(error);
+      return [];
+    }
+  }
+
   public async putKeywordsInfoAfterCE(
     answer: string,
     cl_element_id: number

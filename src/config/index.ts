@@ -3,6 +3,7 @@ import path from "path";
 
 // Set the NODE_ENV to 'development' by default
 // process.env.NODE_ENV = process.env.NODE_ENV || "development";
+
 let dotenvResult;
 if (process.env.NODE_ENV === "production") {
   dotenvResult = dotenv.config({

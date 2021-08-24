@@ -1,14 +1,14 @@
 FROM node:16
 
-WORKDIR /highlightme-node/
+WORKDIR /usr/highlightme-app/
 
 COPY ./package*.json ./
 COPY ./tsconfig.json ./
 COPY ./src ./src
 COPY ./env ./env
 
-RUN npm install
-RUN npm run build
+RUN yarn
+RUN yarn build
 
 EXPOSE 3001
 
