@@ -23,6 +23,8 @@
     "mecab-ko": "^0.4.1",
     "mecab-ya": "^0.1.1",
     "mysql2": "^2.2.5",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
     "reflect-metadata": "^0.1.13",
     "typedi": "^0.10.0",
     "winston": "^3.3.3",
