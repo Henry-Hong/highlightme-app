@@ -1,15 +1,22 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { Container } from "typedi";
+import { Container, Service, Inject } from "typedi";
+import mysql2 from "mysql2/promise";
 import { celebrate, Joi } from "celebrate";
 import { Logger, loggers } from "winston";
 
 import UserService from "../services/user";
 import { IUserInputDTO } from "../interfaces/IUser";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import passportConfig from "../services/auth";
 
 const route = Router();
 
 export default (app: Router) => {
   app.use("/users", route);
+
+  passportConfig();
 
   route.get("/login", (req, res) => {
     const logger: Logger = Container.get("logger");
@@ -20,17 +27,19 @@ export default (app: Router) => {
 
   route.post(
     "/login",
-    // celebrate({
-    //   //celebrate 미들웨어 한번 써주고,
-    //   body: Joi.object({
-    //     email: Joi.string().required(),
-    //     password: Joi.string().required(),
-    //   }),
-    // }),
+    celebrate({
+      body: Joi.object({
+        email: Joi.string().required(),
+        password: Joi.string().required(),
+      }),
+    }),
+    passport.authenticate("local"),
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug("Calling Sign-In endpoint with body: %o", req.body);
+      logger.debug("Calling login endpoint with body: %o", req.body);
 
+      res.send("success");
+      /**
       try {
         const { email, password } = req.body; //req.body에 있는 여러가지 프로퍼티에서 email, password를 추출한다.
 
@@ -51,6 +60,7 @@ export default (app: Router) => {
         logger.error("🔥 error: %o", e);
         return next(e);
       }
+       */
     }
   );
 };
