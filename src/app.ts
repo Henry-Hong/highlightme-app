@@ -9,10 +9,6 @@ async function startServer() {
   const app = express();
   await loader(app);
 
-  app.get("/", (req: Request, res: Response) => {
-    res.status(200).send("<h1>Server Aliveasdfasdfasdfas!</h1>");
-  });
-
   app.listen(config.port, () => {
     console.log(`Express.js listening on port ${config.port}`);
   });
