@@ -11,7 +11,7 @@
     "build:live": "set NODE_ENV=dev && nodemon --watch 'src/**/*.ts' --exec \"ts-node\" src/app.ts"
   },
   "dependencies": {
-    "bcrypt": "3.0.6",
+    "bcrypt": "^5.0.1",
     "celebrate": "^15.0.0",
     "core-js": "^3.15.2",
     "cors": "^2.8.5",
@@ -23,7 +23,7 @@
     "mecab-ko": "^0.4.1",
     "mecab-ya": "^0.1.1",
     "mysql2": "^2.2.5",
-    "passport-google-oauth20": "^2.0.0",
+    "passport": "^0.4.1",
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.1.13",
     "typedi": "^0.10.0",
@@ -31,7 +31,7 @@
     "winston-daily-rotate-file": "^4.5.5"
   },
   "devDependencies": {
-    "@types/bcrypt": "^3.0.0",
+    "@types/bcrypt": "^5.0.0",
     "@types/compression": "^1.0.1",
     "@types/cors": "^2.8.12",
     "@types/crypto-js": "^4.0.2",
@@ -44,6 +44,7 @@
     "@types/node": "^16.4.3",
     "@types/passport": "^1.0.1",
     "@types/passport-facebook": "^2.1.9",
+    "@types/passport-google-oauth20": "^2.0.9",
     "@types/passport-local": "^1.0.33",
     "nodemon": "^2.0.12",
     "ts-node": "^10.1.0",

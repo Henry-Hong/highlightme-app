@@ -7,9 +7,8 @@ import express, {
 import cors from "cors";
 
 //login 관련 모듈 임포트
-//import passportConfig from "../config/passport"
-//import passport from "passport"
-
+// import passportConfig from "../config/passport"
+import passport from "passport";
 import routes from "../routes";
 import config from "../config";
 
@@ -47,8 +46,8 @@ export default (app: express.Application) => {
   });
 
   //미들웨어: passport 미들웨어 설정
-  // app.use(passport.initialize());
-  // app.use(passport.session());
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   /// error handlers
   //   app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

@@ -3,7 +3,6 @@ import mysql2 from "mysql2/promise";
 import config from "../config";
 import { randomBytes } from "crypto";
 import { Logger } from "winston";
-import { nouns } from "mecab-ya";
 
 import { ICL } from "../interfaces/ICL";
 
