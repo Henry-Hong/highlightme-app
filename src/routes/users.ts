@@ -18,6 +18,27 @@ export default (app: Router) => {
 
   passportConfig();
 
+  //구글 간편 로그인 하는곳
+  route.get(
+    "/oauth/google",
+    passport.authenticate("google", { scope: ["profile", "email"] })
+  );
+
+  route.get(
+    "/oauth/google/callback",
+    passport.authenticate("google", {
+      failureRedirect: "/users/oauth/google", //실패하면 로그인페이지로 리다이렉트
+    }),
+    (req, res) => {
+      /**
+       * 구글로그인에 성공했을때 두가지로 나누어질듯
+       * 1. 막 회원가입 했을경우에는 직무정보를 입력하는 곳으로 리다이렉트!
+       * 2. 회원가입이 아닌, 로그인을 했을때에는 자기 질문찾기로 리다이렉트!
+       */
+      res.json(req.user);
+    }
+  );
+
   route.get("/login", (req, res) => {
     const logger: Logger = Container.get("logger");
     logger.debug("login 기능 테스트중입니다. /login으로 라우팅 잘 됩니다.");

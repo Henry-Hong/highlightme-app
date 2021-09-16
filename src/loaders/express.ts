@@ -11,6 +11,7 @@ import cors from "cors";
 import passport from "passport";
 import routes from "../routes";
 import config from "../config";
+import session from "express-session";
 
 export default (app: express.Application) => {
   // 헬스체크
@@ -30,6 +31,22 @@ export default (app: express.Application) => {
   app.set("view engine", "ejs");
   app.set("views", "/Users/heerim/highlightme-node/src/views");
 
+  //미들웨어: passport 미들웨어 설정
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET as string,
+      resave: false,
+      saveUninitialized: true,
+      cookie: {
+        httpOnly: true,
+        secure: false,
+        // maxAge: 1000 * 60,
+      },
+    })
+  );
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   //미들웨어: 라우팅. prefix붙임 (~/api)
   app.use(config.api.prefix, routes());
 
@@ -44,10 +61,6 @@ export default (app: express.Application) => {
       },
     });
   });
-
-  //미들웨어: passport 미들웨어 설정
-  app.use(passport.initialize());
-  app.use(passport.session());
 
   /// error handlers
   //   app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
