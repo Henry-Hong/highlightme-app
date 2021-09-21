@@ -39,6 +39,12 @@ export default (app: Router) => {
     }
   );
 
+  route.get("/logout", (req, res) => {
+    console.log("어떤친구가 로그아웃함!");
+    req.logout(); //로그아웃하고
+    res.redirect("/"); //메인으로 리다이렉트
+  });
+
   route.get("/login", (req, res) => {
     const logger: Logger = Container.get("logger");
     logger.debug("login 기능 테스트중입니다. /login으로 라우팅 잘 됩니다.");
