@@ -90,6 +90,7 @@ export default () => {
     )
   );
 
+  const parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   passport.use(
     new LocalStrategy(
       {
@@ -103,10 +104,8 @@ export default () => {
         try {
           const queryUserExist = "SELECT * FROM User WHERE email=(?)";
           const [userExistResult] = await db.query(queryUserExist, [email]);
-          const [userExistResultParse] = JSON.parse(
-            JSON.stringify(userExistResult)
-          );
-          const user_id = userExistResultParse.user_id;
+          const [userExistResultParse] = parseObj(userExistResult);
+          let user_id = userExistResultParse?.user_id;
 
           // 회원가입절차 진행
           if (!userExistResultParse) {
@@ -121,6 +120,9 @@ export default () => {
               "sampleNickName",
               "2",
             ]);
+            const createUserResultParse = parseObj(createUserResult);
+            if (user_id === undefined) user_id = createUserResultParse.insertId;
+
             return done(null, {
               user_id,
               googleId,
