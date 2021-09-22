@@ -6,6 +6,7 @@ import users from "./users";
 import cls from "./cls";
 import keywords from "./keywords";
 import questions from "./questions";
+import fields from "./fields";
 
 export default () => {
   const app = Router();
@@ -15,6 +16,7 @@ export default () => {
   keywords(app);
   cls(app);
   questions(app);
+  fields(app);
 
   return app;
 };
