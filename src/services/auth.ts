@@ -106,6 +106,7 @@ export default () => {
           const [userExistResultParse] = JSON.parse(
             JSON.stringify(userExistResult)
           );
+          const user_id = userExistResultParse.user_id;
 
           // 회원가입절차 진행
           if (!userExistResultParse) {
@@ -120,11 +121,16 @@ export default () => {
               "sampleNickName",
               "2",
             ]);
-            return done(null, { googleId, email, provider, isNew: true });
+            return done(null, {
+              user_id,
+              googleId,
+              email,
+              isNew: true,
+            });
           }
 
           //이미 존재하는 계정의 경우, 로그인진행
-          return done(null, { googleId, email, provider, isNew: false });
+          return done(null, { user_id, googleId, email, isNew: false });
         } catch (error: any) {
           return done(error);
         }

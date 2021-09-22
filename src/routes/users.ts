@@ -40,28 +40,22 @@ export default (app: Router) => {
   );
 
   //프론트에서 구글로그인, 백엔드에서 로컬하는부분!
-  //{ googleId, email, provider, isNew: true }
-
-  interface IData<T> {
-    googleId: string;
-    email: string;
-    provider: string;
-    isNew: boolean;
-  }
+  //{ user_id, googleId, email, isNew: true }
+  const cloneObj = (o: any) => JSON.parse(JSON.stringify(o));
   route.post(
     "/oauth/google",
     passport.authenticate("local", {
       failureRedirect: "/fail",
     }),
     (req, res) => {
-      res.status(200).json(req.user);
-      // if ((req.user.isNew) == true) {
-      //   // 회원가입한경우
-      //   res.status(200).json(req.user);
-      // } else {
-      //   // 로그인한경우
-      //   res.status(409).json(req.user);
-      // }
+      let obj = cloneObj(req.user);
+      if (obj.isNew === true) {
+        // 회원가입한경우
+        res.status(200).json(req.user);
+      } else {
+        // 로그인한경우
+        res.status(409).json(req.user);
+      }
     }
   );
 
