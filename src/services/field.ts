@@ -33,16 +33,21 @@ export default class fieldService {
       queryDeleteExistUserFields,
       [user_id]
     );
+    
     // 새로운 유저필드를 삽입한다.
-    field_ids.forEach(async (field_id) => {
-      const queryPostFieldsList = `
-      INSERT INTO UsersFields (user_id, field_id, modified_at)
-      VALUES (?, ?, NOW())`;
-      const [queryPostFieldsListResult] = await db.query(queryPostFieldsList, [
-        user_id,
-        field_id,
-      ]);
+    const queryPostFieldsList = `
+      INSERT INTO UsersFields (user_id, field_id)
+      VALUES ?`;
+    let rows: object[] = [];
+    field_ids.forEach((field_id: number) => {
+      let row = [];
+      row.push(user_id);
+      row.push(field_id);
+      rows.push(row);
     });
+    const [queryPostFieldsListResult] = await db.query(queryPostFieldsList, [
+      rows,
+    ]);
 
     return { message: "createOrUpdateUserFields is complete!" };
   }
