@@ -18,6 +18,9 @@ export default () => {
   passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
     if (user.provider == "google") {
       done(undefined, user.email); //세션에 자동 저장
+    } else {
+      console.log("일반 회원가입입니다.");
+      done(undefined, user.email);
     }
     // 다른 oauth 등록 하려면 console.log(user) 먼저 해보기!
     // else if (user.provider == "kakao") {
@@ -67,7 +70,7 @@ export default () => {
             const [createUserResult] = await db.query(queryCreateUser, [
               email,
               tokenId,
-              "sample",
+              "sampleNickName",
               "2",
             ]);
             // console.log(createUserResult);
@@ -87,49 +90,55 @@ export default () => {
     )
   );
 
-  // passport.use(
-  //   new LocalStrategy(
-  //     {
-  //       usernameField: "email",
-  //       passwordField: "password",
-  //       session: true,
-  //     },
-  //     async (email, password, done): Promise<void> => {
-  //       const db = Container.get<mysql2.Connection>("db");
+  const parseObj = (o: any) => JSON.parse(JSON.stringify(o));
+  passport.use(
+    new LocalStrategy(
+      {
+        usernameField: "email",
+        passwordField: "googleId",
+        session: true,
+      },
+      async (email, googleId, done): Promise<void> => {
+        const db = Container.get<mysql2.Connection>("db");
+        const provider = "google-local"; //프론트에서 구글, 백엔드에서 로컬
+        try {
+          const queryUserExist = "SELECT * FROM User WHERE email=(?)";
+          const [userExistResult] = await db.query(queryUserExist, [email]);
+          const [userExistResultParse] = parseObj(userExistResult);
+          let user_id = userExistResultParse?.user_id;
 
-  //       try {
-  //         const queryUserExist = "SELECT * FROM User WHERE email=(?)";
-  //         const [userExistResult] = await db.query(queryUserExist, [email]);
-  //         const [userExistResultParse] = JSON.parse(
-  //           JSON.stringify(userExistResult)
-  //         );
-  //         // console.log(userExistResultParse.password);
+          // 회원가입절차 진행
+          if (!userExistResultParse) {
+            //회원가입코드 findOrCreate
+            console.log("회원가입을 진행합니다.");
+            const queryCreateUser = `
+              INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
+              VALUES(?,?,?,?,NOW(),NOW())`;
+            const [createUserResult] = await db.query(queryCreateUser, [
+              email,
+              googleId,
+              "sampleNickName",
+              "2",
+            ]);
+            const createUserResultParse = parseObj(createUserResult);
+            if (user_id === undefined) user_id = createUserResultParse.insertId;
 
-  //         // 회원가입절차 진행
-  //         if (!userExistResultParse) {
-  //           //회원가입코드
-  //           console.log("회원가입을 진행합니다.");
-  //           done(null, false, { message: "회원가입이 완료되었습니다." });
-  //           //요 done이 어디로가는게지
-  //         }
+            return done(null, {
+              user_id,
+              googleId,
+              email,
+              isNew: true,
+            });
+          }
 
-  //         // 로그인 절차 진행
-  //         if (
-  //           true ===
-  //           bycrypt.compareSync(password, userExistResultParse.password)
-  //         ) {
-  //           //비밀번호 같음
-  //           done(null, userExistResultParse);
-  //         } else {
-  //           //비밀번호 틀림
-  //           done(null, false, {
-  //             message: "비밀번호가 일치하지 않습니다.",
-  //           });
-  //         }
-  //       } catch (error) {
-  //         done(error);
-  //       }
-  //     }
+          //이미 존재하는 계정의 경우, 로그인진행
+          return done(null, { user_id, googleId, email, isNew: false });
+        } catch (error: any) {
+          return done(error);
+        }
+      }
+    )
+  );
 };
 
 //---------------local 로그인 관련---------------------------------------------------
@@ -154,3 +163,10 @@ export default () => {
 //     });
 //   });
 // }
+
+// const queryUserExist = "SELECT * FROM User WHERE email=(?)";
+// const [userExistResult] = await db.query(queryUserExist, [email]);
+// const [userExistResultParse] = JSON.parse(
+//   JSON.stringify(userExistResult)
+// );
+// if ( true === bycrypt.compareSync(password, userExistResultParse.password) ) {
