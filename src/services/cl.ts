@@ -9,35 +9,37 @@ import { ICL } from "../interfaces/ICL";
 @Service()
 export default class CLService {
   constructor(@Inject("logger") private logger: Logger) {}
-
+  parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   //자기소개서항목 등록 & 수정 할때
   public async makeCLE(
-    user_id: number, //토큰으로 대체될예정
-    cl_element_id: number,
-    problem: string,
-    answer: string,
-    _public: number //공개여부는 일단 무적권 1
-  ): Promise<{ token: string }> {
+    CLES: string,
+    cl_id: number,
+    user_id: number,
+    title: string,
+    company: string,
+    tags: object,
+    comments: string
+  ): Promise<object> {
     const db = Container.get<mysql2.Connection>("db");
 
+    //1. 자소서문항정보 삽입하기, 이미있으면 업데이트
     const queryCLElement = `
-        INSERT INTO CLElement (cl_element_id, cl_id, problem, answer, public, modified_at, created_at)
-        VALUES(?, 1, ?, ?, ?, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE problem = problem, answer = answer, modified_at = NOW()`;
+        INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
+        VALUES ?
+        ON DUPLICATE KEY UPDATE problem = VALUES(problem), answer = VALUES(answer), modified_at = NOW()`;
+    let rows: object[] = [];
+    let pCLES = JSON.parse(CLES);
+    pCLES.forEach((e: any) => {
+      let row = Object.values(e);
+      row.push(cl_id);
+      rows.push(row);
+    });
 
-    const [clElementResult] = await db.query(queryCLElement, [
-      cl_element_id,
-      problem,
-      answer,
-      _public,
-    ]);
+    const [clElementResult] = await db.query(queryCLElement, [rows]);
 
-    if (!clElementResult) {
-      console.log("자기소개서문항 넣기 실패");
-      return { token: "fail!" };
-    }
+    //2. title, company, tags, comments 받아와서 저장하는부분
 
-    return { token: "success!" };
+    return clElementResult;
   }
 
   //자기소개서항목 추가

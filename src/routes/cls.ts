@@ -20,12 +20,21 @@ export default (app: Router) => {
     "/",
     celebrate({
       [Segments.BODY]: Joi.object({
+        CLES: Joi.string().required(),
+        //   [
+        //   {
+        //     cl_element_id: Joi.number().required(),
+        //     problem: Joi.string().required(),
+        //     answer: Joi.string().required(),
+        //     _public: Joi.number().required(),
+        //   },
+        // ],
+        cl_id: Joi.number().required(), //이거 프론트에서 안가지고 있을듯?
         user_id: Joi.number().required(),
-        // cl_element_id: Joi.number().required(),
-        problem: Joi.string().required(),
-        answer: Joi.string().required(),
-        _public: Joi.number().required(),
-        // token: Joi.string().required()
+        title: Joi.string().required(),
+        company: Joi.string().required(),
+        tags: Joi.string().required(),
+        comments: Joi.string().required(),
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
@@ -33,15 +42,17 @@ export default (app: Router) => {
       logger.debug("Calling CL CRUD apis : %o", req.body);
 
       try {
-        const cl_element_id = 0;
-        const { user_id, problem, answer, _public } = req.body;
+        const { CLES, cl_id, user_id, title, company, tags, comments } =
+          req.body;
         const clServiceInstance = Container.get(CLService);
         const result = await clServiceInstance.makeCLE(
+          CLES,
+          cl_id,
           user_id,
-          cl_element_id,
-          problem,
-          answer,
-          cl_element_id
+          title,
+          company,
+          tags,
+          comments
         );
 
         return res.json(result).status(200);

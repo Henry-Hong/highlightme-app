@@ -9,50 +9,40 @@ export default class TestService {
   public async dbTest(): Promise<{ content: object }> {
     const db = Container.get<mysql2.Connection>("db");
 
-    let result = [
-      {
-        id: 123, //keyword_id
-        index: 12, //index in CL element
-        type: 0, //0: main, 1: related, 2: custom
-      },
-      {
-        id: 124,
-        index: 15,
-        type: 0, //type이 전부다 main 이라는 가정하에,,, ㅎㅎ
-      },
-    ];
-
-    // const queryUserkeyword = "INSERT INTO UserKeyword VALUES ?";
-    // let rows: any[] = [];
-    // result.forEach((keyword) => {
-    //   let row = [];
-    //   row.push(keyword.id);
-    //   row.push(1);
-    //   row.push(0); //answered
-    //   row.push(1); //isfromcl
-    //   rows.push(row);
-    // });
-
-    // const [dbResult] = await db.query(queryUserkeyword, [rows]);
-
     const queryUserkeyword = `
-    INSERT INTO UserKeyword(keyword_id,user_id,answered,from_cl,is_ready)
-    VALUES ?`;
-    // let rows: any[] = [];
-    // result.forEach((keyword) => {
-    //   let row = [];
-    //   row.push(keyword.id);
-    //   row.push(1);
-    //   row.push(0); //answered
-    //   row.push(1); //isfromcl
-    //   rows.push(row);
-    // });
+    INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE problem = VALUES(problem), answer = VALUES(answer), modified_at = NOW()`;
 
-    const rows = [
-      [1, 2, 0, 1, 1],
-      [1, 2, 0, 1, 1],
+    let cl_id = 1;
+    let dummyCLES = [
+      {
+        cl_element_id: 1,
+        problem: "problem1",
+        answer: "answer1",
+        _public: 1,
+      },
+      {
+        cl_element_id: 2,
+        problem: "problem2",
+        answer: "answer2",
+        _public: 1,
+      },
+      {
+        cl_element_id: 3,
+        problem: "problem4",
+        answer: "answer4",
+        _public: 1,
+      },
     ];
-    const [dbResult] = (await db.query(queryUserkeyword, [rows])) as any; //as any라고 하면 사라짐.. ㅎㅎ ㅠㅠㅠ
+
+    let rows: any = [];
+    dummyCLES.forEach((e) => {
+      let row = Object.values(e);
+      row.push(cl_id);
+      rows.push(row);
+    });
+    const [dbResult] = (await db.query(queryUserkeyword, [rows, rows])) as any; //as any라고 하면 사라짐.. ㅎㅎ ㅠㅠㅠ
     console.log(dbResult.insertId);
     console.log(dbResult.info); //"info": "Records: 3  Duplicates: 0  Warnings: 0",
 
