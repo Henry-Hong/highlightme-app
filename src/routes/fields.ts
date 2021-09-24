@@ -37,10 +37,11 @@ export default (app: Router) => {
       //{"field_ids": ["1","2","3"]}
       //2. 방금 내가 준거 데이터베이스에 저장좀해주세요!
       //2.1 UserFields 테이블에 User_id라는 이름으로 저장!
+      console.log(req.body);
       const { user_id, field_ids } = req.body;
       const result = await FieldServiceInstance.createOrUpdateUserFields(
         parseInt(user_id),
-        JSON.parse(field_ids)
+        field_ids
       );
       return res.json(result);
     } catch (e) {

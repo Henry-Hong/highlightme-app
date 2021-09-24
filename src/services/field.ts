@@ -24,7 +24,7 @@ export default class fieldService {
   // 회원가입시, 사용자가 선택한 직무리스트를 업로드할때!
   public async createOrUpdateUserFields(
     user_id: number,
-    field_ids: []
+    field_ids: string
   ): Promise<object> {
     const db = Container.get<mysql2.Connection>("db");
     // 기존에 있는 유저 필드정보를 지우고,
@@ -33,13 +33,18 @@ export default class fieldService {
       queryDeleteExistUserFields,
       [user_id]
     );
-    
+
+    let convertedFieldIds = JSON.parse(field_ids)
+
+    console.log(user_id, typeof user_id);
+    console.log(convertedFieldIds, typeof convertedFieldIds);
+
     // 새로운 유저필드를 삽입한다.
     const queryPostFieldsList = `
       INSERT INTO UsersFields (user_id, field_id)
       VALUES ?`;
     let rows: object[] = [];
-    field_ids.forEach((field_id: number) => {
+    convertedFieldIds.forEach((field_id: number) => {
       let row = [];
       row.push(user_id);
       row.push(field_id);
