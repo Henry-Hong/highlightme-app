@@ -23,7 +23,7 @@ export default (app: Router) => {
     "/oauth/google",
     (req, res, next) => {
       logger.debug(
-        `Calling GET "/api/users/oauth/google", req.body: %o`,
+        `Calling GET '/api/users/oauth/google', req.body: %o`,
         req.body
       );
       next();
@@ -53,7 +53,7 @@ export default (app: Router) => {
     "/oauth/google",
     (req, res, next) => {
       logger.debug(
-        `Calling POST "/api/users/oauth/google", req.body: %o`,
+        `Calling POST '/api/users/oauth/google', req.body: %o`,
         req.body
       );
       next();
@@ -74,7 +74,7 @@ export default (app: Router) => {
   );
 
   route.get("/logout", (req, res) => {
-    logger.debug(`Calling GET "/api/users/logout", req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/users/logout', req.body: %o`, req.body);
 
     if (req.user) {
       console.log("어떤친구가 로그아웃함!");

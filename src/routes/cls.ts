@@ -14,6 +14,7 @@ const route = Router();
 
 export default (app: Router) => {
   app.use("/cls", route);
+  const logger: Logger = Container.get("logger");
 
   //C1 POST localhost:3001/api/cls
   route.post(
@@ -38,8 +39,7 @@ export default (app: Router) => {
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
-      const logger: Logger = Container.get("logger");
-      logger.debug(`Calling POST "/api/cls", req.body: %o`, req.body);
+      logger.debug(`Calling POST '/api/cls'`);
 
       try {
         const { CLES, cl_id, user_id, title, company, tags, comments } =
@@ -63,4 +63,19 @@ export default (app: Router) => {
       }
     }
   );
+
+  //C2 GET localhost:3001/api/cls
+  route.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    logger.debug(`Calling GET '/api/cls', req.body: %o`, req.body);
+
+    try {
+      const { user_id } = req.body;
+      const clServiceInstance = Container.get(CLService);
+      const result = await clServiceInstance.getCLEsById(user_id);
+      return res.status(200).json(result);
+    } catch (e) {
+      logger.error("🔥 error: %o", e);
+      return next(e);
+    }
+  });
 };
