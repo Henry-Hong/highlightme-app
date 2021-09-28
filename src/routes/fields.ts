@@ -7,6 +7,9 @@ import { Logger } from "winston";
 import FieldService from "../services/field";
 import config from "../config";
 
+import * as fs from "fs";
+import * as path from "path";
+
 const route = Router();
 
 export default (app: Router) => {
@@ -19,9 +22,10 @@ export default (app: Router) => {
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     // logger.debug("Calling fields apis : %o", req.body);
     try {
-      const user_id = parseInt(req.body.user_id);
-      const result = await FieldServiceInstance.getFieldsList(user_id);
-      return res.json(result);
+      // const result = await FieldServiceInstance.getFieldsList(user_id);
+      return res
+        .status(200)
+        .sendFile(path.join(__dirname, "../data/fields.json"));
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);

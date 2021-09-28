@@ -1,6 +1,8 @@
 import { Container, Service, Inject } from "typedi";
 import mysql2 from "mysql2/promise";
 import { Logger } from "winston";
+import * as fs from "fs";
+import * as path from "path";
 
 @Service()
 export default class TestService {
@@ -9,56 +11,51 @@ export default class TestService {
   public async dbTest(): Promise<{ content: object }> {
     const db = Container.get<mysql2.Connection>("db");
 
-    let result = [
-      {
-        id: 123, //keyword_id
-        index: 12, //index in CL element
-        type: 0, //0: main, 1: related, 2: custom
-      },
-      {
-        id: 124,
-        index: 15,
-        type: 0, //type이 전부다 main 이라는 가정하에,,, ㅎㅎ
-      },
-    ];
+    const query = `SELECT * FROM BigField`;
+    const [dbResult] = await db.query(query);
+    const pResult = JSON.parse(JSON.stringify(dbResult));
 
-    // const queryUserkeyword = "INSERT INTO UserKeyword VALUES ?";
-    // let rows: any[] = [];
-    // result.forEach((keyword) => {
-    //   let row = [];
-    //   row.push(keyword.id);
-    //   row.push(1);
-    //   row.push(0); //answered
-    //   row.push(1); //isfromcl
-    //   rows.push(row);
-    // });
+    const query2 = `SELECT * FROM Field`;
+    const [dbResult2] = await db.query(query2);
+    const pResult2 = JSON.parse(JSON.stringify(dbResult2));
 
-    // const [dbResult] = await db.query(queryUserkeyword, [rows]);
+    let result = { bigField: [] } as any;
 
-    const queryUserkeyword = `
-    INSERT INTO UserKeyword(keyword_id,user_id,answered,from_cl,is_ready)
-    VALUES ?`;
-    // let rows: any[] = [];
-    // result.forEach((keyword) => {
-    //   let row = [];
-    //   row.push(keyword.id);
-    //   row.push(1);
-    //   row.push(0); //answered
-    //   row.push(1); //isfromcl
-    //   rows.push(row);
-    // });
+    let idx = 1;
+    for (let i = 0; i < 14; i++) {
+      let json = {} as any;
+      json.id = pResult[i].big_field_id;
+      json.name = pResult[i].big_field;
+      json.smallGroup = [];
 
-    const rows = [
-      [1, 2, 0, 1, 1],
-      [1, 2, 0, 1, 1],
-    ];
-    const [dbResult] = (await db.query(queryUserkeyword, [rows])) as any; //as any라고 하면 사라짐.. ㅎㅎ ㅠㅠㅠ
-    console.log(dbResult.insertId);
-    console.log(dbResult.info); //"info": "Records: 3  Duplicates: 0  Warnings: 0",
+      for (let j = 0; j < pResult2.length; j++) {
+        if (pResult2[j].big_field_id == idx) {
+          let sjson = {} as any;
+          sjson.id = pResult2[j].field_id;
+          sjson.name = pResult2[j].field;
+          json.smallGroup.push(sjson);
+        } else if (pResult2[j].big_field_id < idx) {
+          continue;
+        } else {
+          idx++;
+          break;
+        }
+      }
 
-    return { content: dbResult };
+      result.bigField.push(json);
+    }
+
+    console.log(result);
+
+    // fs.readFile(
+    //   path.join(__dirname, "../data.json"),
+    //   "utf8",
+    //   async (error, data) => {
+    //     if (error) throw error;
+    //     const pData = JSON.parse(data);
+    //   }
+    // );
+
+    return { content: result };
   }
-
-  //자기소개서항목 추가
-  //자기소개서항목 삭제
 }
