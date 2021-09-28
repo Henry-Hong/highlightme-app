@@ -8,6 +8,3 @@ logs/
 
 # Build result
 build/
-
-# Data storage
-data/
