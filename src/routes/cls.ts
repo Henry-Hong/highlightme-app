@@ -15,7 +15,7 @@ const route = Router();
 export default (app: Router) => {
   app.use("/cls", route);
 
-  //POST localhost:3001/api/cls
+  //C1 POST localhost:3001/api/cls
   route.post(
     "/",
     celebrate({
@@ -39,7 +39,7 @@ export default (app: Router) => {
     }),
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug("Calling CL CRUD apis : %o", req.body);
+      logger.debug(`Calling POST "/api/cls", req.body: %o`, req.body);
 
       try {
         const { CLES, cl_id, user_id, title, company, tags, comments } =
@@ -55,7 +55,7 @@ export default (app: Router) => {
           comments
         );
 
-        return res.json(result).status(200);
+        return res.status(200).json(result);
         // return res.json({ result: token }).status(200);
       } catch (e) {
         logger.error("🔥 error: %o", e);
