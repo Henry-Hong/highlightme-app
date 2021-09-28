@@ -9,7 +9,7 @@ import { ICL } from "../interfaces/ICL";
 @Service()
 export default class fieldService {
   constructor(@Inject("logger") private logger: Logger) {}
-
+  parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   // GET localhost:3001/api/fields
   // 회원가입시, 직무리스트를 불러올때!
   public async getFieldsList(user_id: number): Promise<object> {
@@ -62,33 +62,40 @@ export default class fieldService {
     field_ids: string
   ): Promise<object> {
     const db = Container.get<mysql2.Connection>("db");
-    // 기존에 있는 유저 필드정보를 지우고,
+    let userInfo = "newUser's field is inserted!";
+    // 1. 기존에 있는 유저 필드정보를 지우고,
     const queryDeleteExistUserFields = `DELETE FROM UsersFields WHERE user_id = (?)`;
     const [queryDeleteExistUserFieldsResult] = await db.query(
       queryDeleteExistUserFields,
       [user_id]
     );
+    const queryDeleteExistUserFieldsResultParse = this.parseObj(
+      queryDeleteExistUserFieldsResult
+    );
+    if (queryDeleteExistUserFieldsResultParse.affectedRows != 0)
+      userInfo = "user's field is updated";
 
-    let convertedFieldIds = JSON.parse(field_ids)
-
-    console.log(user_id, typeof user_id);
-    console.log(convertedFieldIds, typeof convertedFieldIds);
-
-    // 새로운 유저필드를 삽입한다.
+    // 2. 새로운 유저필드를 삽입한다.
     const queryPostFieldsList = `
       INSERT INTO UsersFields (user_id, field_id)
       VALUES ?`;
+    let convertedFieldIds = JSON.parse(field_ids);
+    const rows = this.makeRows(convertedFieldIds, user_id);
+    const [queryPostFieldsListResult] = await db.query(queryPostFieldsList, [
+      rows,
+    ]);
+
+    return { message: `createOrUpdateUserFields is complete!, ${userInfo}` };
+  }
+
+  private makeRows(FieldIds: any, user_id: any) {
     let rows: object[] = [];
-    convertedFieldIds.forEach((field_id: number) => {
+    FieldIds.forEach((field_id: number) => {
       let row = [];
       row.push(user_id);
       row.push(field_id);
       rows.push(row);
     });
-    const [queryPostFieldsListResult] = await db.query(queryPostFieldsList, [
-      rows,
-    ]);
-
-    return { message: "createOrUpdateUserFields is complete!" };
+    return rows;
   }
 }

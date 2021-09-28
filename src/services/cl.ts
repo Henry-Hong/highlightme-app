@@ -27,19 +27,22 @@ export default class CLService {
         INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
         VALUES ?
         ON DUPLICATE KEY UPDATE problem = VALUES(problem), answer = VALUES(answer), modified_at = NOW()`;
-    let rows: object[] = [];
+    const rows = this.makeRowsFromCLES(CLES, cl_id);
+    const [clElementResult] = await db.query(queryCLElement, [rows]);
+
+    //2. title, company, tags, comments 받아와서 저장하는부분
+
+    return clElementResult;
+  }
+
+  private makeRowsFromCLES(CLES: any, cl_id: any) {
+    let rows = [] as any;
     let pCLES = JSON.parse(CLES);
     pCLES.forEach((e: any) => {
       let row = Object.values(e);
       row.push(cl_id);
       rows.push(row);
     });
-
-    const [clElementResult] = await db.query(queryCLElement, [rows]);
-
-    //2. title, company, tags, comments 받아와서 저장하는부분
-
-    return clElementResult;
   }
 
   //자기소개서항목 추가

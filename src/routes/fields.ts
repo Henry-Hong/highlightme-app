@@ -20,7 +20,7 @@ export default (app: Router) => {
 
   //GET localhost:3001/api/fields
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
-    // logger.debug("Calling fields apis : %o", req.body);
+    logger.debug(`Calling GET "/api/fields", req.body: %o`, req.body);
     try {
       // const result = await FieldServiceInstance.getFieldsList(user_id);
       return res
@@ -34,14 +34,8 @@ export default (app: Router) => {
 
   //POST localhost:3001/api/fields
   route.post("/", async (req: Request, res: Response, next: NextFunction) => {
-    // logger.debug("Calling fields apis : %o", req.body);
+    logger.debug(`Calling POST "/api/fields", req.body: %o`, req.body);
     try {
-      //사용자필드저장하기!
-      //1. 일단 req.body로 사용자의 필드선택을 받을것이다. -> 대부분은 field_id로 올것이다.
-      //{"field_ids": ["1","2","3"]}
-      //2. 방금 내가 준거 데이터베이스에 저장좀해주세요!
-      //2.1 UserFields 테이블에 User_id라는 이름으로 저장!
-      console.log(req.body);
       const { user_id, field_ids } = req.body;
       const result = await FieldServiceInstance.createOrUpdateUserFields(
         parseInt(user_id),
