@@ -19,7 +19,6 @@ export default () => {
     if (user.provider == "google") {
       done(undefined, user.email); //세션에 자동 저장
     } else {
-      console.log("일반 회원가입입니다.");
       done(undefined, user.email);
     }
     // 다른 oauth 등록 하려면 console.log(user) 먼저 해보기!
@@ -63,7 +62,6 @@ export default () => {
           // 회원가입절차 진행
           if (!userExistResultParse) {
             //회원가입코드 findOrCreate
-            console.log("회원가입을 진행합니다.");
             const queryCreateUser = `
               INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
               VALUES(?,?,?,?,NOW(),NOW())`;
@@ -110,7 +108,6 @@ export default () => {
           // 회원가입절차 진행
           if (!userExistResultParse) {
             //회원가입코드 findOrCreate
-            console.log("회원가입을 진행합니다.");
             const queryCreateUser = `
               INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
               VALUES(?,?,?,?,NOW(),NOW())`;

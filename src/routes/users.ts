@@ -15,12 +15,19 @@ const route = Router();
 
 export default (app: Router) => {
   app.use("/users", route);
-
+  const logger: Logger = Container.get("logger");
   passportConfig();
 
   //구글 간편 로그인 하는곳
   route.get(
     "/oauth/google",
+    (req, res, next) => {
+      logger.debug(
+        `Calling GET "/api/users/oauth/google", req.body: %o`,
+        req.body
+      );
+      next();
+    },
     passport.authenticate("google", { scope: ["profile", "email"] })
   );
 
@@ -44,6 +51,13 @@ export default (app: Router) => {
   const cloneObj = (o: any) => JSON.parse(JSON.stringify(o));
   route.post(
     "/oauth/google",
+    (req, res, next) => {
+      logger.debug(
+        `Calling POST "/api/users/oauth/google", req.body: %o`,
+        req.body
+      );
+      next();
+    },
     passport.authenticate("local", {
       failureRedirect: "/fail",
     }),
@@ -60,6 +74,8 @@ export default (app: Router) => {
   );
 
   route.get("/logout", (req, res) => {
+    logger.debug(`Calling GET "/api/users/logout", req.body: %o`, req.body);
+
     if (req.user) {
       console.log("어떤친구가 로그아웃함!");
       req.logout(); //로그아웃하고
