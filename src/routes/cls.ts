@@ -22,14 +22,6 @@ export default (app: Router) => {
     celebrate({
       [Segments.BODY]: Joi.object({
         CLES: Joi.string().required(),
-        //   [
-        //   {
-        //     cl_element_id: Joi.number().required(),
-        //     problem: Joi.string().required(),
-        //     answer: Joi.string().required(),
-        //     _public: Joi.number().required(),
-        //   },
-        // ],
         cl_id: Joi.number().required(), //이거 프론트에서 안가지고 있을듯?
         user_id: Joi.number().required(),
         title: Joi.string().required(),
@@ -54,9 +46,7 @@ export default (app: Router) => {
           tags,
           comments
         );
-
         return res.status(200).json(result);
-        // return res.json({ result: token }).status(200);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
