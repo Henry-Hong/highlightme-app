@@ -22,4 +22,10 @@ export default (app: Router) => {
       return next(e);
     }
   });
+
+  route.post("/3", (req: Request, res: Response, next: NextFunction) => {
+    console.log(req.body);
+    console.log(typeof req.body.e); //string
+    res.send("good");
+  });
 };

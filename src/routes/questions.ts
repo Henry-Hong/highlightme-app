@@ -12,27 +12,71 @@ const route = Router();
 export default (app: Router) => {
   app.use("/questions", route);
 
-  //localhost:3001/api/questions?keyword=블라블라
-  //user_keyword_id로 처리할것인지 -> 키워드 api에서 뷰화면에 뿌려질때, id도 같이 return 해줘야되는데.. 아마 같이 return 해주겠지?
-  route.get(
-    "/",
-    celebrate({
-      [Segments.BODY]: Joi.object({
-        // 토큰밖에 확인할게없다. 토큰은 헤더값으로 들어가는걸로 알고있음!
-        // user_id: Joi.number().required(),
-        // token: Joi.string().required()
-      }),
-    }),
+  // Q1 GET localhost:3001/api/questions
+  // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
+  route.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    const logger: Logger = Container.get("logger");
+    logger.debug(`Calling GET "/api/questions", req.body: %o`, req.body);
+    try {
+      const { user_keyword_id } = req.body;
+      const questionServiceInstance = Container.get(QuestionService);
+      const { token, content } = await questionServiceInstance.questionList(
+        parseInt(user_keyword_id)
+      );
+      return res.json({ result: content }).status(200);
+    } catch (e) {
+      logger.error("🔥 error: %o", e);
+      return next(e);
+    }
+  });
+
+  // Q2 POST localhost:3001/api/questions/like
+  // 특정 질문에 대해 좋아요를 남길때!
+  route.post(
+    "/like",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug("Calling questionList endpoint : %o", req.query);
+      logger.debug(
+        `Calling POST "/api/questions/like", req.body: %o`,
+        req.body
+      );
       try {
-        const user_keyword_id = req.query.keyword as string;
+        const { question_id, isUp } = req.body;
+        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
         const questionServiceInstance = Container.get(QuestionService);
-        const { token, content } = await questionServiceInstance.questionList(
-          parseInt(user_keyword_id)
+        const result = await questionServiceInstance.questionLike(
+          parseInt(question_id),
+          parseInt(isUp),
+          user_id
         );
-        return res.json({ result: content }).status(200);
+        return res.status(200).json(result);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
+
+  // Q3 POST localhost:3001/api/questions/dislike
+  // 특정 질문에 대해 싫어요를 남길때!
+  route.post(
+    "/dislike",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST "/api/questions/dislike", req.body: %o`,
+        req.body
+      );
+      try {
+        const { question_id, isUp } = req.body;
+        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const questionServiceInstance = Container.get(QuestionService);
+        const result = await questionServiceInstance.questionDislike(
+          parseInt(question_id),
+          parseInt(isUp),
+          user_id
+        );
+        return res.status(200).json(result);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
