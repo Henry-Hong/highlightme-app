@@ -89,6 +89,7 @@ export default class CLService {
     const { cl_id } = await this.getClIdFromUserId(user_id);
 
     let result = {} as any;
+
     const queryDeleteCLElement = `
         DELETE FROM CLElement WHERE cl_element_id=? AND cl_id=?`;
     const [queryDeleteCLElementResult] = await this.db.query(
@@ -98,12 +99,16 @@ export default class CLService {
     const queryDeleteCLElementResultParse = this.parseObj(
       queryDeleteCLElementResult
     );
-    if (queryDeleteCLElementResultParse.affectedRows === 1) {
+    if (queryDeleteCLElementResultParse.affectedRows === 1)
       result.isDeleted = true;
-    } else {
-      result.isDeleted = false;
-    }
+    else result.isDeleted = false;
 
+    const queryRearrangeOrder = `
+      UPDATE CLElement SET cl_element_id = cl_element_id - 1 WHERE cl_id = ? AND cl_element_id > ?`;
+    const [queryRearrangeOrderResult] = await this.db.query(
+      queryRearrangeOrder,
+      [cl_id, cl_element_id]
+    );
     return result;
   }
 
