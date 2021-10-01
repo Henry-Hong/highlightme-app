@@ -68,4 +68,24 @@ export default (app: Router) => {
       return next(e);
     }
   });
+
+  //C2 GET localhost:3001/api/cls
+  route.delete("/", async (req: Request, res: Response, next: NextFunction) => {
+    logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
+
+    try {
+      const { user_id } = (req.user as any) || { user_id: 7 };
+
+      const { cl_element_id } = req.body;
+      const clServiceInstance = Container.get(CLService);
+      const result = await clServiceInstance.deleteCLE(
+        parseInt(cl_element_id),
+        parseInt(user_id)
+      );
+      return res.status(200).json(result);
+    } catch (e) {
+      logger.error("🔥 error: %o", e);
+      return next(e);
+    }
+  });
 };

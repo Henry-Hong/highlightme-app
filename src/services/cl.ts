@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { Logger } from "winston";
 
 import { ICL } from "../interfaces/ICL";
+import { addAbortSignal } from "stream";
 
 @Service()
 export default class CLService {
@@ -60,18 +61,11 @@ export default class CLService {
   }
 
   private async getOrCreateClId(user_id: any) {
-    const queryGetClIdFromUserId = `
-      SELECT cl_id FROM CL WHERE user_id = ?`;
-    const [queryGetClIdFromUserIdResult] = await this.db.query(
-      queryGetClIdFromUserId,
-      [user_id]
-    );
-    const [queryGetClIdFromUserIdResultParse] = this.parseObj(
-      queryGetClIdFromUserIdResult
-    );
+    //디비를 거쳐서 cl_id를 가져온다.
+    const { cl_id } = await this.getClIdFromUserId(user_id);
 
     //빈객체이면 유저의 cl_id정보를 만든다.
-    if (queryGetClIdFromUserIdResultParse === undefined) {
+    if (cl_id === undefined) {
       const queryClInitialize = `
         INSERT INTO CL (user_id, title, company, tags, comment, view_num, user_question_num, created_at)
         VALUES (?, "init", "init", "init", "init", 0, 0, NOW())`;
@@ -81,10 +75,48 @@ export default class CLService {
       )) as any;
       return { cl_id: queryClInitializeResult.insertId, isNew: 1 };
     } else {
-      return { cl_id: queryGetClIdFromUserIdResultParse.cl_id, isNew: 0 };
+      return { cl_id: cl_id, isNew: 0 };
     }
   }
 
-  //자기소개서항목 추가
-  //자기소개서항목 삭제
+  // C3 DELETE localhost:3001/api/cls
+  // 자기소개서항목 삭제
+  public async deleteCLE(
+    cl_element_id: number,
+    user_id: number
+  ): Promise<object> {
+    //디비를 거쳐서 cl_id를 가져온다.
+    const { cl_id } = await this.getClIdFromUserId(user_id);
+
+    let result = {} as any;
+    const queryDeleteCLElement = `
+        DELETE FROM CLElement WHERE cl_element_id=? AND cl_id=?`;
+    const [queryDeleteCLElementResult] = await this.db.query(
+      queryDeleteCLElement,
+      [cl_element_id, cl_id]
+    );
+    const queryDeleteCLElementResultParse = this.parseObj(
+      queryDeleteCLElementResult
+    );
+    if (queryDeleteCLElementResultParse.affectedRows === 1) {
+      result.isDeleted = true;
+    } else {
+      result.isDeleted = false;
+    }
+
+    return result;
+  }
+
+  private async getClIdFromUserId(user_id: number) {
+    const queryGetClIdFromUserId = `
+      SELECT cl_id FROM CL WHERE user_id = ?`;
+    const [queryGetClIdFromUserIdResult] = await this.db.query(
+      queryGetClIdFromUserId,
+      [user_id]
+    );
+    const [queryGetClIdFromUserIdResultParse] = this.parseObj(
+      queryGetClIdFromUserIdResult
+    );
+    return { cl_id: queryGetClIdFromUserIdResultParse };
+  }
 }
