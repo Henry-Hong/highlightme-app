@@ -20,7 +20,7 @@ export default (app: Router) => {
 
   //GET localhost:3001/api/fields
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
-    logger.debug(`Calling GET "/api/fields", req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/fields', req.body: %o`, req.body);
     try {
       // const result = await FieldServiceInstance.getFieldsList(user_id);
       return res
@@ -34,7 +34,7 @@ export default (app: Router) => {
 
   //POST localhost:3001/api/fields
   route.post("/", async (req: Request, res: Response, next: NextFunction) => {
-    logger.debug(`Calling POST "/api/fields", req.body: %o`, req.body);
+    logger.debug(`Calling POST '/api/fields', req.body: %o`, req.body);
     try {
       const { user_id, field_ids } = req.body;
       const result = await FieldServiceInstance.createOrUpdateUserFields(

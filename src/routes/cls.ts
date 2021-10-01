@@ -14,21 +14,14 @@ const route = Router();
 
 export default (app: Router) => {
   app.use("/cls", route);
+  const logger: Logger = Container.get("logger");
 
-  //POST localhost:3001/api/cls
+  //C1 POST localhost:3001/api/cls
   route.post(
     "/",
     celebrate({
       [Segments.BODY]: Joi.object({
         CLES: Joi.string().required(),
-        //   [
-        //   {
-        //     cl_element_id: Joi.number().required(),
-        //     problem: Joi.string().required(),
-        //     answer: Joi.string().required(),
-        //     _public: Joi.number().required(),
-        //   },
-        // ],
         cl_id: Joi.number().required(), //이거 프론트에서 안가지고 있을듯?
         user_id: Joi.number().required(),
         title: Joi.string().required(),
@@ -38,8 +31,7 @@ export default (app: Router) => {
       }),
     }),
     async (req: Request, res: Response, next: NextFunction) => {
-      const logger: Logger = Container.get("logger");
-      logger.debug("Calling CL CRUD apis : %o", req.body);
+      logger.debug(`Calling POST '/api/cls'`);
 
       try {
         const { CLES, cl_id, user_id, title, company, tags, comments } =
@@ -54,13 +46,46 @@ export default (app: Router) => {
           tags,
           comments
         );
-
-        return res.json(result).status(200);
-        // return res.json({ result: token }).status(200);
+        return res.status(200).json(result);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
       }
     }
   );
+
+  //C2 GET localhost:3001/api/cls
+  route.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    logger.debug(`Calling GET '/api/cls', req.body: %o`, req.body);
+
+    try {
+      const { user_id } = req.body;
+      const clServiceInstance = Container.get(CLService);
+      const result = await clServiceInstance.getCLEsById(user_id);
+      return res.status(200).json(result);
+    } catch (e) {
+      logger.error("🔥 error: %o", e);
+      return next(e);
+    }
+  });
+
+  //C2 GET localhost:3001/api/cls
+  route.delete("/", async (req: Request, res: Response, next: NextFunction) => {
+    logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
+
+    try {
+      const { user_id } = (req.user as any) || { user_id: 7 };
+
+      const { cl_element_id } = req.body;
+      const clServiceInstance = Container.get(CLService);
+      const result = await clServiceInstance.deleteCLE(
+        parseInt(cl_element_id),
+        parseInt(user_id)
+      );
+      return res.status(200).json(result);
+    } catch (e) {
+      logger.error("🔥 error: %o", e);
+      return next(e);
+    }
+  });
 };
