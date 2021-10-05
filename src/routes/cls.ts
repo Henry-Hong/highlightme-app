@@ -21,7 +21,7 @@ export default (app: Router) => {
     "/",
     celebrate({
       [Segments.BODY]: Joi.object({
-        CLES: Joi.string().required(),
+        CLEs: Joi.string().required(),
         cl_id: Joi.number().required(), //이거 프론트에서 안가지고 있을듯?
         user_id: Joi.number().required(),
         title: Joi.string().required(),
@@ -34,11 +34,11 @@ export default (app: Router) => {
       logger.debug(`Calling POST '/api/cls'`);
 
       try {
-        const { CLES, cl_id, user_id, title, company, tags, comments } =
+        const { CLEs, cl_id, user_id, title, company, tags, comments } =
           req.body;
         const clServiceInstance = Container.get(CLService);
         const result = await clServiceInstance.makeCLE(
-          CLES,
+          CLEs,
           cl_id,
           user_id,
           title,
@@ -69,7 +69,7 @@ export default (app: Router) => {
     }
   });
 
-  //C2 GET localhost:3001/api/cls
+  //C3 DELETE localhost:3001/api/cls
   route.delete("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
 
