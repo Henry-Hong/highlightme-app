@@ -7,27 +7,42 @@ import { Logger } from "winston";
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
 
-  public async getUserKeywords(
-    user_id: number
-  ): Promise<{ keyword: string; id: number }[]> {
+  // K1, K2 GET localhost:3001/api/keywords
+  // 한 유저의 키워드를 불러오는 apis
+  public async getUserKeywords(user_id: number): Promise<object> {
     try {
       const db = Container.get<mysql2.Connection>("db");
 
-      const queryUserKeyword = `
-        SELECT keyword, keyword_id FROM Keyword WHERE keyword_id IN (SELECT keyword_id FROM UserKeyword WHERE user_id = ?)`;
-      const [result] = (await db.query(queryUserKeyword, [user_id])) as any;
+      const queryUserKeywords = `
+        SELECT
+        K.keyword_id, K.keyword,
+        UK.user_keyword_id, UK.answered
+        FROM Keyword K
+        INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ?) UK ON K.keyword_id = UK.keyword_id`;
+      const [queryUserKeywordsResult] = (await db.query(queryUserKeywords, [
+        user_id,
+      ])) as any;
 
-      // console.log(result);
-
-      let ks: { keyword: string; id: number }[] = [];
-      for (let keyword of result) {
-        ks.push({ keyword: keyword.keyword, id: keyword.keyword_id });
+      let keywords: {
+        keyword_id: number;
+        user_keyword_id: number;
+        keyword: string;
+        answered: number;
+      }[] = [];
+      for (let kw of queryUserKeywordsResult) {
+        keywords.push({
+          keyword_id: kw.keyword_id,
+          user_keyword_id: kw.user_keyword_id,
+          keyword: kw.keyword,
+          answered: kw.answered,
+        });
       }
+      let result = { result: keywords };
 
-      return ks; //success
+      return result; //success
     } catch (error) {
       console.log(error);
-      return [];
+      return { result: "error", message: error };
     }
   }
 

@@ -15,14 +15,14 @@ const route = Router();
 export default (app: Router) => {
   app.use("/keywords", route);
 
-  //POST localhost:3001/api/keywords
+  // K1, K2 GET localhost:3001/api/keywords
+  // 한 유저의 키워드를 불러오는 apis
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug("Calling CL CRUD apis : %o", req.body);
+    logger.debug(`Calling GET '/api/keywords', req.body: %o`, req.body);
 
     try {
-      const user_id = req.query.user_id as string;
-
+      const { user_id } = (req.user as any) || { user_id: 7 };
       const keywordServiceInstance = Container.get(KeywordService);
       const result = await keywordServiceInstance.getUserKeywords(
         parseInt(user_id)
