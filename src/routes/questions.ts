@@ -83,4 +83,30 @@ export default (app: Router) => {
       }
     }
   );
+
+  // Q5 POST localhost:3001/api/questions/answer
+  // 특정 질문에 대해 답하기!
+  route.post(
+    "/answer",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST '/api/questions/answer', req.body: %o`,
+        req.body
+      );
+      try {
+        const { user_question_id, answer } = req.body;
+        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const questionServiceInstance = Container.get(QuestionService);
+        const result = await questionServiceInstance.answerToQuestion(
+          parseInt(user_question_id),
+          answer
+        );
+        return res.status(200).json(result);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
 };
