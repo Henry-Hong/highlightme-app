@@ -30,6 +30,7 @@ export default {
   dbName: process.env.DB_NAME,
   dbPassword: process.env.DB_PW,
   ceServerURL: "localhost:3002/ce", //not sure "http://" needed or not
+  keywordsURL: "http://localhost:3001/api/keywords",
   api: {
     prefix: "/api",
   },

@@ -3,6 +3,7 @@ import mysql2 from "mysql2/promise";
 import config from "../config";
 import { randomBytes } from "crypto";
 import { Logger } from "winston";
+import axios from "axios";
 
 import { ICL } from "../interfaces/ICL";
 
@@ -14,30 +15,33 @@ export default class questionService {
 
   // Q1 GET localhost:3001/api/questions
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
-  public async questionList(
-    user_keyword_id: number
-  ): Promise<{ token: object; content: object }> {
-    const questionInfoResults = await this.getQuestionsInfo(user_keyword_id);
+  public async questionList(user_keyword_id: number): Promise<object> {
+    let result = {} as any;
 
-    if (!questionInfoResults) {
-      console.log("질문목록 뽑아오기 실패!");
-      return { token: {}, content: {} };
-    }
+    await axios
+      .post(config.keywordsURL + "/read", {
+        user_keyword_id: user_keyword_id,
+      })
+      .then(function (response: any) {
+        result.isAnswerColUpdated = response.data.isUpdated;
+      })
+      .catch(function (error) {
+        throw error;
+      });
 
-    return {
-      token: {},
-      content: questionInfoResults,
-    };
-  }
-
-  private async getQuestionsInfo(user_keyword_id: number): Promise<object> {
-    const queryQuestionInfo =
-      "SELECT * FROM Question WHERE question_id IN (SELECT question_id FROM UserQuestion WHERE user_keyword_id = (?))";
-    const [questionInfoResult] = await this.db.query(queryQuestionInfo, [
+    const queryQuestionInfo = `
+      SELECT
+      Q.question_id, Q.content, Q.type,
+      UQ.user_question_id
+      FROM Question Q 
+      INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
+    // "SELECT * FROM Question WHERE question_id IN (SELECT question_id FROM UserQuestion WHERE user_keyword_id = (?))";
+    const [questionInfoResult] = (await this.db.query(queryQuestionInfo, [
       user_keyword_id,
-    ]);
+    ])) as any;
 
-    return questionInfoResult;
+    result.questions = questionInfoResult;
+    return result;
   }
 
   // Q2 POST localhost:3001/api/questions/like
@@ -138,9 +142,23 @@ export default class questionService {
   // 특정 질문에 대해 답하기!
   public async answerToQuestion(
     user_question_id: number,
+    user_keyword_id: number,
     answer: string
   ): Promise<object> {
-    //1. 특정 question에 대해, 답을 답니다.
+    let result = {} as any;
+
+    //1. 질문에 답을 했다는거슨.. 어떤 키워드에 답을 하나라도 했다는것..
+    await axios
+      .post(config.keywordsURL + "/answered", {
+        user_keyword_id: user_keyword_id,
+      })
+      .then(function (response: any) {
+        result.isAnswerColUpdated = response.data.isUpdated;
+      })
+      .catch(function (error) {
+        throw error;
+      });
+
     const queryAnswerToQuestion = `
       INSERT INTO UserQuestion (user_question_id, answer, created_at, modified_at)
       VALUES(?, ?, NOW(), NOW())
@@ -149,7 +167,10 @@ export default class questionService {
       queryAnswerToQuestion,
       [user_question_id, answer]
     )) as any;
+    console.log(queryAnswerToQuestionResult);
+    if (queryAnswerToQuestionResult.affectedRows) result.isAnswerSuccess = 1;
+    else result.isAnswerSuccess = 0;
 
-    return { result: 1 };
+    return result;
   }
 }

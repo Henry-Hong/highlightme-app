@@ -6,28 +6,83 @@ import { Logger } from "winston";
 @Service()
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
+  db = Container.get<mysql2.Connection>("db");
+  parseObj = (o: any) => JSON.parse(JSON.stringify(o));
 
-  public async getUserKeywords(
-    user_id: number
-  ): Promise<{ keyword: string; id: number }[]> {
+  // K1, K2 GET localhost:3001/api/keywords
+  // 한 유저의 키워드를 불러오는 apis
+  public async getUserKeywords(user_id: number): Promise<object> {
     try {
-      const db = Container.get<mysql2.Connection>("db");
+      const queryUserKeywords = `
+        SELECT
+        K.keyword_id, K.keyword,
+        UK.user_keyword_id, UK.answered
+        FROM Keyword K
+        INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? & is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
+      const [queryUserKeywordsResult] = (await this.db.query(
+        queryUserKeywords,
+        [user_id]
+      )) as any;
 
-      const queryUserKeyword = `
-        SELECT keyword, keyword_id FROM Keyword WHERE keyword_id IN (SELECT keyword_id FROM UserKeyword WHERE user_id = ?)`;
-      const [result] = (await db.query(queryUserKeyword, [user_id])) as any;
-
-      // console.log(result);
-
-      let ks: { keyword: string; id: number }[] = [];
-      for (let keyword of result) {
-        ks.push({ keyword: keyword.keyword, id: keyword.keyword_id });
+      let keywords: {
+        keyword_id: number;
+        user_keyword_id: number;
+        keyword: string;
+        answered: number;
+      }[] = [];
+      for (let kw of queryUserKeywordsResult) {
+        keywords.push({
+          keyword_id: kw.keyword_id,
+          user_keyword_id: kw.user_keyword_id,
+          keyword: kw.keyword,
+          answered: kw.answered,
+        });
       }
+      let result = { result: keywords };
 
-      return ks; //success
+      return result; //success
     } catch (error) {
       console.log(error);
-      return [];
+      return { result: "error", message: error };
+    }
+  }
+
+  // K3 POST localhost:3001/api/keywords/read
+  // 한 키워드를 읽었음을 알리는 api
+  public async updateKeywordRead(user_keyword_id: number): Promise<object> {
+    try {
+      const queryKeywordRead = `
+        UPDATE UserKeyword SET answered = 1 WHERE user_keyword_id = ? AND answered = 0`;
+      const [queryKeywordReadResult] = (await this.db.query(queryKeywordRead, [
+        user_keyword_id,
+      ])) as any;
+      let result = { isUpdated: queryKeywordReadResult.affectedRows };
+
+      return result;
+    } catch (error) {
+      console.log(error);
+      return { result: "error", message: error };
+    }
+  }
+
+  // K4 POST localhost:3001/api/keywords/answered
+  // 한 키워드에 답변이 달렸음을 알리는 api
+  public async updateKeywordAnswered(user_keyword_id: number): Promise<object> {
+    try {
+      const queryKeywordAnswer = `
+        UPDATE UserKeyword SET answered = 2 WHERE user_keyword_id = ? AND answered = 1`;
+      // answered = 0 인경우, 업데이트가 안될 수 있기에 조심! 항상 K3로 인해 answred = 1 로 바뀌고나서 실행된다는 시나리오!!
+      const [queryKeywordAnswerResult] = (await this.db.query(
+        queryKeywordAnswer,
+        [user_keyword_id]
+      )) as any;
+
+      let result = { isUpdated: queryKeywordAnswerResult.affectedRows };
+
+      return result;
+    } catch (error) {
+      console.log(error);
+      return { result: "error", message: error };
     }
   }
 
