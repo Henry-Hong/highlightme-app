@@ -2,6 +2,7 @@ import { Container, Service, Inject } from "typedi";
 import mysql2 from "mysql2/promise";
 import config from "../config";
 import { Logger } from "winston";
+import { IKeyword } from "../interfaces/IKeyword";
 
 @Service()
 export default class KeywordService {
@@ -32,55 +33,68 @@ export default class KeywordService {
   }
 
   public async putKeywordsInfoAfterCE(
-    answer: string,
-    cl_element_id: number
+    user_id: number,
+    elements: string
   ): Promise<number> {
+    const db = Container.get<mysql2.Connection>("db");
+
     try {
       //1. ce야 내가 자소서 보내줄테니까 키워드 목록 보내줘! ->이제 node서버가 클라이언트가 되는거고, ce서버가 서버가되는거임.
       const ceResult = await fetch(config.ceServerURL + "/keywords", {
         method: "GET",
         body: new URLSearchParams({
-          elements: JSON.stringify([answer]),
+          elements: JSON.stringify([elements]),
         }),
       });
-      const data: any[] = await ceResult.json(); //assuming data is json
+      const data: IKeyword[][] = await ceResult.json(); //assuming data is json
       // const data = [
-      //   {
-      //     id: 1, //keyword_id
-      //     index: 1004, //index in CL element
-      //     type: 0, //0: main, 1: related, 2: custom
-      //   },
-      //   {
-      //     id: 2,
-      //     index: 486,
-      //     type: 0, //type이 전부다 main 이라는 가정하에,,, ㅎㅎ
-      //   },
+      //   [
+      //     {
+      //       rawKeyword: "DI",
+      //       indices: [6],
+      //       type: 1,
+      //       id: 205,
+      //       keyword: "종속성 주입",
+      //     },
+      //     {
+      //       rawKeyword: "고등학교",
+      //       indices: [14],
+      //       type: 0,
+      //     },
+      //   ],
       // ];
 
+      //1.5. (임시) 기존 테이블 내용 날리기
+      const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
+      const [result] = await db.query(queryDeleteAllRows, [user_id]);
+
       //2. UserKeyword 테이블에다가 키워드를 넣습니다.
-      const db = Container.get<mysql2.Connection>("db");
-
-      let rows: any[] = [];
-      data.forEach((keyword) => {
-        let row = [];
-        row.push(keyword.id);
-        row.push(2); //row.push(user_id);
-        row.push(0); //answered, 0은상수 -> 상수관리는 나중에 알아보도록.. ㅠ
-        row.push(1); //fromcl
-        row.push(1); //is_ready
-
-        rows.push(row);
+      let keywordsData: any[] = [];
+      let indices: any[] = [];
+      data.forEach((keywords) => {
+        keywordsData.concat(
+          keywords.map((k) => {
+            if (k.type === 1) {
+              //실존하는 키워드만 넣음
+              if (k.indices.length > 0) {
+                indices.push(k.indices);
+              }
+              return [k.id, user_id, false, true, true];
+            }
+          })
+        );
       });
       const queryUserkeyword = `
         INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
         VALUES ?`;
-      const [userKeywordResult] = (await db.query(queryUserkeyword, [
-        rows,
-      ])) as any;
+      const [userKeywordResult]: [
+        mysql2.RowDataPacket[],
+        mysql2.FieldPacket[]
+      ] = await db.query(queryUserkeyword, [keywordsData]);
 
+      //2. FromCL에 넣을 Indices 수집
       //3. FromCL 테이블에 userKeywordResult.insertId를 이용해서 넣어야됨
       let rows2: any[] = [];
-
       for (let e = 0; e < data.length; e++) {
         let row = [];
         row.push(userKeywordResult.insertId + e);
