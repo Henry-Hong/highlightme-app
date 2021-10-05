@@ -6,22 +6,23 @@ import { Logger } from "winston";
 @Service()
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
+  db = Container.get<mysql2.Connection>("db");
+  parseObj = (o: any) => JSON.parse(JSON.stringify(o));
 
   // K1, K2 GET localhost:3001/api/keywords
   // 한 유저의 키워드를 불러오는 apis
   public async getUserKeywords(user_id: number): Promise<object> {
     try {
-      const db = Container.get<mysql2.Connection>("db");
-
       const queryUserKeywords = `
         SELECT
         K.keyword_id, K.keyword,
         UK.user_keyword_id, UK.answered
         FROM Keyword K
-        INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ?) UK ON K.keyword_id = UK.keyword_id`;
-      const [queryUserKeywordsResult] = (await db.query(queryUserKeywords, [
-        user_id,
-      ])) as any;
+        INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? & is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
+      const [queryUserKeywordsResult] = (await this.db.query(
+        queryUserKeywords,
+        [user_id]
+      )) as any;
 
       let keywords: {
         keyword_id: number;
@@ -40,6 +41,41 @@ export default class KeywordService {
       let result = { result: keywords };
 
       return result; //success
+    } catch (error) {
+      console.log(error);
+      return { result: "error", message: error };
+    }
+  }
+
+  // K3 POST localhost:3001/api/keywords/read
+  // 한 키워드를 읽었음을 알리는 api
+  public async updateKeywordRead(user_keyword_id: number): Promise<object> {
+    try {
+      const queryKeywordRead = `
+        UPDATE UserKeyword SET answered = 1 WHERE user_keyword_id = ? AND answered = 0`;
+      const [queryKeywordReadResult] = (await this.db.query(queryKeywordRead, [
+        user_keyword_id,
+      ])) as any;
+      let result = { isUpdated: queryKeywordReadResult.affectedRows };
+
+      return result;
+    } catch (error) {
+      console.log(error);
+      return { result: "error", message: error };
+    }
+  }
+
+  // K4 POST localhost:3001/api/keywords/answered
+  // 한 키워드에 답변이 달렸음을 알리는 api
+  public async updateKeywordAnswered(user_keyword_id: number): Promise<object> {
+    try {
+      const queryKeywordRead = `
+        UPDATE UserKeyword SET answered = 2 WHERE user_keyword_id = ?`;
+      const [queryKeywordReadResult] = (await this.db.query(queryKeywordRead, [
+        user_keyword_id,
+      ])) as any;
+
+      return queryKeywordReadResult;
     } catch (error) {
       console.log(error);
       return { result: "error", message: error };

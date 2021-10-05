@@ -16,14 +16,14 @@ export default (app: Router) => {
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug(`Calling GET "/api/questions", req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/questions', req.body: %o`, req.body);
     try {
       const { user_keyword_id } = req.body;
       const questionServiceInstance = Container.get(QuestionService);
-      const { token, content } = await questionServiceInstance.questionList(
+      const result = await questionServiceInstance.questionList(
         parseInt(user_keyword_id)
       );
-      return res.json({ result: content }).status(200);
+      return res.json(result).status(200);
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);
