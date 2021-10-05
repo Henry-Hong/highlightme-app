@@ -69,13 +69,17 @@ export default class KeywordService {
   // 한 키워드에 답변이 달렸음을 알리는 api
   public async updateKeywordAnswered(user_keyword_id: number): Promise<object> {
     try {
-      const queryKeywordRead = `
-        UPDATE UserKeyword SET answered = 2 WHERE user_keyword_id = ?`;
-      const [queryKeywordReadResult] = (await this.db.query(queryKeywordRead, [
-        user_keyword_id,
-      ])) as any;
+      const queryKeywordAnswer = `
+        UPDATE UserKeyword SET answered = 2 WHERE user_keyword_id = ? AND answered = 1`;
+      // answered = 0 인경우, 업데이트가 안될 수 있기에 조심! 항상 K3로 인해 answred = 1 로 바뀌고나서 실행된다는 시나리오!!
+      const [queryKeywordAnswerResult] = (await this.db.query(
+        queryKeywordAnswer,
+        [user_keyword_id]
+      )) as any;
 
-      return queryKeywordReadResult;
+      let result = { isUpdated: queryKeywordAnswerResult.affectedRows };
+
+      return result;
     } catch (error) {
       console.log(error);
       return { result: "error", message: error };

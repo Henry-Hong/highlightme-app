@@ -23,7 +23,7 @@ export default class questionService {
         user_keyword_id: user_keyword_id,
       })
       .then(function (response: any) {
-        result.isReadUpdated = response.data.isUpdated;
+        result.isAnswerColUpdated = response.data.isUpdated;
       })
       .catch(function (error) {
         throw error;
@@ -142,9 +142,23 @@ export default class questionService {
   // 특정 질문에 대해 답하기!
   public async answerToQuestion(
     user_question_id: number,
+    user_keyword_id: number,
     answer: string
   ): Promise<object> {
-    //1. 특정 question에 대해, 답을 답니다.
+    let result = {} as any;
+
+    //1. 질문에 답을 했다는거슨.. 어떤 키워드에 답을 하나라도 했다는것..
+    await axios
+      .post(config.keywordsURL + "/answered", {
+        user_keyword_id: user_keyword_id,
+      })
+      .then(function (response: any) {
+        result.isAnswerColUpdated = response.data.isUpdated;
+      })
+      .catch(function (error) {
+        throw error;
+      });
+
     const queryAnswerToQuestion = `
       INSERT INTO UserQuestion (user_question_id, answer, created_at, modified_at)
       VALUES(?, ?, NOW(), NOW())
@@ -153,7 +167,10 @@ export default class questionService {
       queryAnswerToQuestion,
       [user_question_id, answer]
     )) as any;
+    console.log(queryAnswerToQuestionResult);
+    if (queryAnswerToQuestionResult.affectedRows) result.isAnswerSuccess = 1;
+    else result.isAnswerSuccess = 0;
 
-    return { result: 1 };
+    return result;
   }
 }

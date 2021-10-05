@@ -42,7 +42,7 @@ export default (app: Router) => {
     "/read",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(`Calling POST '/api/keywords', req.body: %o`, req.body);
+      logger.debug(`Calling POST '/api/keywords/read', req.body: %o`, req.body);
 
       try {
         const { user_id } = (req.user as any) || { user_id: 7 };
@@ -60,13 +60,16 @@ export default (app: Router) => {
     }
   );
 
-  // K4 POST localhost:3001/api/keywords
+  // K4 POST localhost:3001/api/keywords/answered
   // 한 키워드에 답변했음을 알리는 api
   route.post(
     "/answered",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(`Calling POST '/api/keywords', req.body: %o`, req.body);
+      logger.debug(
+        `Calling POST '/api/keywords/answered', req.body: %o`,
+        req.body
+      );
 
       try {
         const { user_id } = (req.user as any) || { user_id: 7 };

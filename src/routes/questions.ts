@@ -95,11 +95,12 @@ export default (app: Router) => {
         req.body
       );
       try {
-        const { user_question_id, answer } = req.body;
+        const { user_question_id, user_keyword_id, answer } = req.body;
         const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
         const questionServiceInstance = Container.get(QuestionService);
         const result = await questionServiceInstance.answerToQuestion(
           parseInt(user_question_id),
+          parseInt(user_keyword_id),
           answer
         );
         return res.status(200).json(result);
