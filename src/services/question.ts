@@ -137,4 +137,23 @@ export default class questionService {
     }
     return result;
   }
+
+  // Q5 POST localhost:3001/api/questions/answer
+  // 특정 질문에 대해 답하기!
+  public async answerToQuestion(
+    user_question_id: number,
+    answer: string
+  ): Promise<object> {
+    //1. 특정 question에 대해, 답을 답니다.
+    const queryAnswerToQuestion = `
+      INSERT INTO UserQuestion (user_question_id, answer, created_at, modified_at)
+      VALUES(?, ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE answer = VALUES(answer), modified_at = NOW()`;
+    const [queryAnswerToQuestionResult] = (await this.db.query(
+      queryAnswerToQuestion,
+      [user_question_id, answer]
+    )) as any;
+
+    return { result: 1 };
+  }
 }
