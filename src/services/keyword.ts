@@ -18,7 +18,7 @@ export default class KeywordService {
         K.keyword_id, K.keyword,
         UK.user_keyword_id, UK.answered
         FROM Keyword K
-        INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? & is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
+        INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? AND is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
       const [queryUserKeywordsResult] = (await this.db.query(
         queryUserKeywords,
         [user_id]
@@ -39,7 +39,6 @@ export default class KeywordService {
         });
       }
       let result = { result: keywords };
-
       return result; //success
     } catch (error) {
       console.log(error);
