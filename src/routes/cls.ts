@@ -23,7 +23,6 @@ export default (app: Router) => {
       [Segments.BODY]: Joi.object({
         CLES: Joi.string().required(),
         cl_id: Joi.number().required(), //이거 프론트에서 안가지고 있을듯?
-        user_id: Joi.number().required(),
         title: Joi.string().required(),
         company: Joi.string().required(),
         tags: Joi.string().required(),

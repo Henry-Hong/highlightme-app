@@ -31,11 +31,11 @@ export default class CLService {
         VALUES ?
         ON DUPLICATE KEY UPDATE modified_at = IF(problem <> VALUES(problem) OR answer <> VALUES(answer), NOW(), modified_at), problem = VALUES(problem), answer = VALUES(answer)`;
     const rows = this.makeRowsFromCLES(CLES, cl_id);
-    const [clElementResult] = await this.db.query(queryCLElement, [rows]);
+    const [clElementResult] = await (this.db.query(queryCLElement, [rows])) as any;
 
     //2. title, company, tags, comments 받아와서 저장하는부분
 
-    return clElementResult;
+    return {info:clElementResult.info};
   }
 
   private makeRowsFromCLES(CLES: any, cl_id: any) {
