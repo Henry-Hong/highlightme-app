@@ -18,10 +18,11 @@ export default (app: Router) => {
   const logger: Logger = Container.get("logger");
   const FieldServiceInstance = Container.get(FieldService);
 
-  //GET localhost:3001/api/fields
+  //U5.1 GET localhost:3001/api/fields
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling GET '/api/fields', req.body: %o`, req.body);
     try {
+      // const { user_id } = (req.user as any) || { user_id: 7 };
       // const result = await FieldServiceInstance.getFieldsList(user_id);
       return res
         .status(200)
@@ -32,11 +33,12 @@ export default (app: Router) => {
     }
   });
 
-  //POST localhost:3001/api/fields
+  //U5.2 POST localhost:3001/api/fields
   route.post("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling POST '/api/fields', req.body: %o`, req.body);
     try {
-      const { user_id, field_ids } = req.body;
+      const { user_id } = (req.user as any) || { user_id: 7 };
+      const { field_ids } = req.body;
       const result = await FieldServiceInstance.createOrUpdateUserFields(
         parseInt(user_id),
         field_ids

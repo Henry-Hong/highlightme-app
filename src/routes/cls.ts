@@ -34,8 +34,8 @@ export default (app: Router) => {
       logger.debug(`Calling POST '/api/cls'`);
 
       try {
-        const { CLES, cl_id, user_id, title, company, tags, comments } =
-          req.body;
+        const { user_id } = (req.user as any) || { user_id: 7 };
+        const { CLES, cl_id, title, company, tags, comments } = req.body;
         const clServiceInstance = Container.get(CLService);
         const result = await clServiceInstance.makeCLE(
           CLES,
@@ -59,7 +59,7 @@ export default (app: Router) => {
     logger.debug(`Calling GET '/api/cls', req.body: %o`, req.body);
 
     try {
-      const { user_id } = req.body;
+      const { user_id } = (req.user as any) || { user_id: 7 };
       const clServiceInstance = Container.get(CLService);
       const result = await clServiceInstance.getCLEsById(user_id);
       return res.status(200).json(result);
@@ -69,13 +69,12 @@ export default (app: Router) => {
     }
   });
 
-  //C2 GET localhost:3001/api/cls
+  //C2 DELETE localhost:3001/api/cls
   route.delete("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
 
     try {
       const { user_id } = (req.user as any) || { user_id: 7 };
-
       const { cl_element_id } = req.body;
       const clServiceInstance = Container.get(CLService);
       const result = await clServiceInstance.deleteCLE(
