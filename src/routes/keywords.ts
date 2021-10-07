@@ -84,15 +84,18 @@ export default (app: Router) => {
         logger.error("🔥 error: %o", e);
         return next(e);
       }
+    })
+  
   route.get(
-    "/test",
-    async (req: Request, res: Response, next: NextFunction) => {
-      const keywordServiceInstance = Container.get(KeywordService);
-      const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
-        7,
-        "stringstringstring"
+        "/test",
+        async (req: Request, res: Response, next: NextFunction) => {
+          const keywordServiceInstance = Container.get(KeywordService);
+          const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
+            7,
+            "stringstringstring"
+          );
+          res.send("hello");
+        }
       );
-      res.send("hello");
-    }
-  );
-};
+}
+
