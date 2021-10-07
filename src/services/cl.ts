@@ -22,7 +22,7 @@ export default class CLService {
     user_id: number,
     title: string,
     company: string,
-    tags: object,
+    tags: string,
     comments: string
   ): Promise<object> {
     //1. 자소서문항정보 삽입하기, 이미있으면 업데이트
@@ -41,11 +41,16 @@ export default class CLService {
   private makeRowsFromCLES(CLES: any, cl_id: any) {
     let rows = [] as any;
     let pCLES = JSON.parse(CLES);
-    pCLES.forEach((e: any) => {
-      let row = Object.values(e);
+    pCLES.map((CLE: { cl_element_id: string; problem: any; answer: any; _public: any; })=> {
+      let row = [];
+      row.push(parseInt(CLE.cl_element_id))
+      row.push(CLE.problem)
+      row.push(CLE.answer)
+      row.push(parseInt(CLE._public))
       row.push(cl_id);
       rows.push(row);
-    });
+    })
+    console.log(rows);
     return rows;
   }
 

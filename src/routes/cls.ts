@@ -19,18 +19,8 @@ export default (app: Router) => {
   //C1 POST localhost:3001/api/cls
   route.post(
     "/",
-    celebrate({
-      [Segments.BODY]: Joi.object({
-        CLES: Joi.string().required(),
-        cl_id: Joi.number().required(), //이거 프론트에서 안가지고 있을듯?
-        title: Joi.string().required(),
-        company: Joi.string().required(),
-        tags: Joi.string().required(),
-        comments: Joi.string().required(),
-      }),
-    }),
     async (req: Request, res: Response, next: NextFunction) => {
-      logger.debug(`Calling POST '/api/cls'`);
+      logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
 
       try {
         const { user_id } = (req.user as any) || { user_id: 7 };
@@ -38,8 +28,8 @@ export default (app: Router) => {
         const clServiceInstance = Container.get(CLService);
         const result = await clServiceInstance.makeCLE(
           CLES,
-          cl_id,
-          user_id,
+          parseInt(cl_id),
+          parseInt(user_id),
           title,
           company,
           tags,
