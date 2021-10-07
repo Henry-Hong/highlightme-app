@@ -58,7 +58,7 @@ export default (app: Router) => {
     }
   });
 
-  //C2 DELETE localhost:3001/api/cls
+  //C3 DELETE localhost:3001/api/cls
   route.delete("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
 

@@ -58,16 +58,16 @@ export default class CLService {
   // 자기소개서항목 & 주고받기 정보 내놓으라할때
   public async getCLEsById(user_id: number): Promise<object> {
     // 먼저, cl_id 관련된 정보가 있으면 불러오고 없으면 만든다.
-    const { cl_id, isNew } = await this.getOrCreateClId(user_id);
+    const { cl_id, isNew } = await this.getOrCreateCLId(user_id);
     const queryGetCLEs = `
       SELECT * FROM CLElement WHERE cl_id = ?`;
     const [queryGetCLEsResult] = await this.db.query(queryGetCLEs, [cl_id]);
     return { isNew: isNew, result: queryGetCLEsResult };
   }
 
-  private async getOrCreateClId(user_id: any) {
+  private async getOrCreateCLId(user_id: any) {
     //디비를 거쳐서 cl_id를 가져온다.
-    const { cl_id } = await this.getClIdFromUserId(user_id);
+    const { cl_id } = await this.getCLIdFromUserId(user_id);
 
     //빈객체이면 유저의 cl_id정보를 만든다.
     if (cl_id === undefined) {
@@ -91,7 +91,7 @@ export default class CLService {
     user_id: number
   ): Promise<object> {
     //디비를 거쳐서 cl_id를 가져온다.
-    const { cl_id } = await this.getClIdFromUserId(user_id);
+    const { cl_id } = await this.getCLIdFromUserId(user_id);
 
     let result = {} as any;
 
@@ -117,16 +117,16 @@ export default class CLService {
     return result;
   }
 
-  private async getClIdFromUserId(user_id: number) {
-    const queryGetClIdFromUserId = `
+  private async getCLIdFromUserId(user_id: number) {
+    const queryGetCLIdFromUserId = `
       SELECT cl_id FROM CL WHERE user_id = ?`;
-    const [queryGetClIdFromUserIdResult] = await this.db.query(
-      queryGetClIdFromUserId,
+    const [queryGetCLIdFromUserIdResult] = await this.db.query(
+      queryGetCLIdFromUserId,
       [user_id]
     );
-    const [queryGetClIdFromUserIdResultParse] = this.parseObj(
-      queryGetClIdFromUserIdResult
+    const [queryGetCLIdFromUserIdResultParsed] = this.parseObj(
+      queryGetCLIdFromUserIdResult
     );
-    return { cl_id: queryGetClIdFromUserIdResultParse };
+    return { cl_id: queryGetCLIdFromUserIdResultParsed };
   }
 }
