@@ -35,4 +35,16 @@ export default (app: Router) => {
       return next(e);
     }
   });
+
+  route.get(
+    "/test",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const keywordServiceInstance = Container.get(KeywordService);
+      const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
+        7,
+        "stringstringstring"
+      );
+      res.send("hello");
+    }
+  );
 };
