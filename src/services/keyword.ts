@@ -66,7 +66,7 @@ export default class KeywordService {
     }
   }
 
-  // K4 POST localhost:3001/api/keywords/answered
+  // K4 POST localhost:3001/api/keywords/answered ㄱ-ㄲ
   // 한 키워드에 답변이 달렸음을 알리는 api
   public async updateKeywordAnswered(user_keyword_id: number): Promise<object> {
     try {
