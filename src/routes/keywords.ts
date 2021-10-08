@@ -87,15 +87,17 @@ export default (app: Router) => {
     })
   
   route.get(
-        "/test",
-        async (req: Request, res: Response, next: NextFunction) => {
-          const keywordServiceInstance = Container.get(KeywordService);
-          const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
-            7,
-            "stringstringstring"
-          );
-          res.send("hello");
-        }
+    "/test",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(`테스트중임더!`);
+      const keywordServiceInstance = Container.get(KeywordService);
+      const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
+        7,
+        "stringstringstring"
       );
+      res.send("hello");
+    }
+  );
 }
 
