@@ -3,6 +3,7 @@ import mysql2 from "mysql2/promise";
 import config from "../config";
 import { randomBytes } from "crypto";
 import { Logger } from "winston";
+import KeywordService from "../services/keyword";
 
 import { ICL } from "../interfaces/ICL";
 import { addAbortSignal } from "stream";
@@ -13,6 +14,7 @@ export default class CLService {
   constructor(@Inject("logger") private logger: Logger) {}
   parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   db = Container.get<mysql2.Connection>("db");
+  keywordServiceInstance = Container.get(KeywordService);
 
   // C1 POST localhost:3001/api/cls
   // 자기소개서항목 등록 & 수정 할때
@@ -30,15 +32,19 @@ export default class CLService {
         INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
         VALUES ?
         ON DUPLICATE KEY UPDATE modified_at = IF(problem <> VALUES(problem) OR answer <> VALUES(answer), NOW(), modified_at), problem = VALUES(problem), answer = VALUES(answer)`;
-    const rows = this.makeRowsFromCLES(CLES, cl_id);
+    const { rows, elements } = this.makeRowsFromCLES(CLES, cl_id);
     const [clElementResult] = await (this.db.query(queryCLElement, [rows])) as any;
 
     //2. title, company, tags, comments 받아와서 저장하는부분
 
-    return {info:clElementResult.info};
+    //3. CE서버로 보내서 키워드 분석하는부분
+    const putKeywordsInfoAfterCEResult = await this.keywordServiceInstance.putKeywordsInfoAfterCE(user_id, elements) as any;
+
+    return {cl_upload_info:clElementResult.info, after_ce_info_keyword: putKeywordsInfoAfterCEResult.userKeyword, after_ce_info_indexes: putKeywordsInfoAfterCEResult.userIndexes};
   }
 
   private makeRowsFromCLES(CLES: any, cl_id: any) {
+    let elements = [] as any;
     let rows = [] as any;
     let pCLES = JSON.parse(CLES);
     pCLES.map((CLE: { cl_element_id: string; problem: any; answer: any; _public: any; })=> {
@@ -49,9 +55,10 @@ export default class CLService {
       row.push(parseInt(CLE._public))
       row.push(cl_id);
       rows.push(row);
+
+      elements.push(CLE.answer);
     })
-    console.log(rows);
-    return rows;
+    return {rows, elements};
   }
 
   // C2 GET localhost:3001/api/cls
