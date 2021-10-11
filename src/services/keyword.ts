@@ -153,10 +153,11 @@ export default class KeywordService {
       // const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
       // const [result] = await db.query(queryDeleteAllRows, [user_id]);
 
-      const { keywordsData, indexesResult } = this.makeKeywordsDbFormat(ceResult, user_id) as any;
+      const { keywordsData, indexesResult } = await this.makeKeywordsDbFormat(ceResult, user_id) as any;
       
       // 자소서에 Keywords에 등록된 키워드가 있다면,
       if (keywordsData !== undefined) {
+        
         //2. UserKeyword 테이블에다가 keywordsData를 넣습니다.
         const queryUserkeyword = `INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready) VALUES ?`;
         const [userKeywordResult] = (await db.query(queryUserkeyword, [
@@ -166,7 +167,7 @@ export default class KeywordService {
 
         //3. FromCL 테이블에다가 indexesData를 넣습니다.
         let user_keyword_id: number = userKeywordResult.insertId;
-        const { indexesData } = this.makeIndexesDbFormat(indexesResult, user_keyword_id) as any;
+        const { indexesData } = await this.makeIndexesDbFormat(indexesResult, user_keyword_id) as any;
         const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index) VALUES ?`;
         const [queryIndexesToFromCLResult] = await db.query(
           queryIndexesToFromCL,
@@ -201,7 +202,7 @@ export default class KeywordService {
       });
     return { indexesData };
   }
-  
+
   private async makeKeywordsDbFormat(
     ceResult: any,
     user_id: number
@@ -216,11 +217,13 @@ export default class KeywordService {
             if (k.indices.length > 0) {
               indexesInCLE.push(k.indices);
             }
+            k.id = Math.floor(Math.random() * 100);
             keywordsData.push([k.id, user_id, false, true, true]);
           }
         });
         indexesResult.push(indexesInCLE);
       });
-    return { keywordsData, indexesResult };
+    
+    return { keywordsData: keywordsData, indexesResult: indexesResult };
   }
 }

@@ -96,7 +96,7 @@ export default (app: Router) => {
         7,
         "stringstringstring"
       );
-      res.send("hello");
+      res.send(result);
     }
   );
 }
