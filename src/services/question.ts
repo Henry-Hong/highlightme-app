@@ -38,6 +38,8 @@ export default class questionService {
       user_keyword_id,
     ])) as any;
 
+    //3. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
+
     result.questions = questionInfoResult;
     return result;
   }
@@ -164,5 +166,47 @@ export default class questionService {
     else result.isAnswerSuccess = 0;
 
     return result;
+  }
+
+  // Q6 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
+  public async putUserQuestionsAfterCE(
+    user_keyword_id: number,
+    keyword_id: number
+  ) {
+    // 해당 유저의 키워드와 관련된 질문을 KeywordsQuestions에서 뽑아서
+    // UserQuestion 테이블에 넣는다. -> 언제만 해야됨? (일단은 자소서를 등록했을때)
+    // 1. KeywordsQuestions 테이블에서 keyword_id를 통해서 question_id 를 뽑아낸다.
+    const queryKeywordQuestionPairs = `
+      SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`;
+    const [queryKeywordQuestionPairsResult] = (await this.db.query(
+      queryKeywordQuestionPairs,
+      [keyword_id]
+    )) as any;
+
+    // 2. UserQuestion 테이블에 question_id를 바탕으로, user_keyword_id를 기본으로 하여 추가한다
+    const queryMakeUserQuestions = `
+      INSERT INTO UserQuestion (user_keyword_id, question_id)
+      VALUES ?`;
+    const { userQuestionsData } = await this.makeUserQuestionsDbFormat(
+      queryKeywordQuestionPairsResult,
+      user_keyword_id
+    );
+
+    const [queryMakeUserQuestionsResult] = await this.db.query(
+      queryMakeUserQuestions,
+      [userQuestionsData]
+    );
+    return queryMakeUserQuestionsResult;
+  }
+
+  private async makeUserQuestionsDbFormat(
+    queryKeywordQuestionPairsResult: any,
+    user_keyword_id: number
+  ) {
+    const rows = [] as any;
+    queryKeywordQuestionPairsResult.map((row: any) =>
+      rows.push([user_keyword_id, row.question_id])
+    );
+    return { userQuestionsData: rows };
   }
 }

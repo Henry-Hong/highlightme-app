@@ -12,12 +12,13 @@ const route = Router();
 export default (app: Router) => {
   app.use("/questions", route);
 
-  // Q1 GET localhost:3001/api/questions
+  // Q1 POST localhost:3001/api/questions
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
-  route.get("/", async (req: Request, res: Response, next: NextFunction) => {
+  route.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug(`Calling GET '/api/questions', req.body: %o`, req.body);
+    logger.debug(`Calling POST '/api/questions', req.body: %o`, req.body);
     try {
+      const { user_id } = (req.user as any) || { user_id: 7 };
       const { user_keyword_id } = req.body;
       const questionServiceInstance = Container.get(QuestionService);
       const result = await questionServiceInstance.questionList(
@@ -108,6 +109,24 @@ export default (app: Router) => {
         logger.error("🔥 error: %o", e);
         return next(e);
       }
+    }
+  );
+
+  route.post(
+    "/test",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST '/api/questions/test', req.body: %o`,
+        req.body
+      );
+
+      const questionServiceInstance = Container.get(QuestionService);
+      const result = await questionServiceInstance.putUserQuestionsAfterCE(
+        41,
+        79
+      );
+      return res.status(200).json(result);
     }
   );
 };

@@ -4,6 +4,7 @@ import config from "../config";
 import { randomBytes } from "crypto";
 import { Logger } from "winston";
 import KeywordService from "../services/keyword";
+import QuestionService from "../services/question";
 
 import { ICL } from "../interfaces/ICL";
 import { addAbortSignal } from "stream";
@@ -15,6 +16,7 @@ export default class CLService {
   parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   db = Container.get<mysql2.Connection>("db");
   keywordServiceInstance = Container.get(KeywordService);
+  questionServiceInstance = Container.get(QuestionService);
 
   // C1 POST localhost:3001/api/cls
   // 자기소개서항목 등록 & 수정 할때
@@ -33,32 +35,53 @@ export default class CLService {
         VALUES ?
         ON DUPLICATE KEY UPDATE modified_at = IF(problem <> VALUES(problem) OR answer <> VALUES(answer), NOW(), modified_at), problem = VALUES(problem), answer = VALUES(answer)`;
     const { rows, elements } = this.makeRowsFromCLES(CLES, cl_id);
-    const [clElementResult] = await (this.db.query(queryCLElement, [rows])) as any;
+    const [clElementResult] = (await this.db.query(queryCLElement, [
+      rows,
+    ])) as any;
 
     //2. title, company, tags, comments 받아와서 저장하는부분
 
     //3. CE서버로 보내서 키워드 분석하는부분
-    const putKeywordsInfoAfterCEResult = await this.keywordServiceInstance.putKeywordsInfoAfterCE(user_id, elements) as any;
+    const putKeywordsInfoAfterCEResult = {} as any;
+    // (await this.keywordServiceInstance.putKeywordsInfoAfterCE(
+    //   user_id,
+    //   elements
+    // )) as any;
 
-    return {cl_upload_info:clElementResult.info, after_ce_info_keyword: putKeywordsInfoAfterCEResult.userKeyword, after_ce_info_indexes: putKeywordsInfoAfterCEResult.userIndexes};
+    // 4. 키워드로 유저질문 생성하는부분
+    // 키워드가 너무 많아서,, 질문만들기도 엄청오래걸릴것같튼뎅,,
+    // await this.questionServiceInstance.putUserQuestionsAfterCE(user_id);
+
+    return {
+      cl_upload_info: clElementResult.info,
+      after_ce_info_keyword: putKeywordsInfoAfterCEResult.userKeyword,
+      after_ce_info_indexes: putKeywordsInfoAfterCEResult.userIndexes,
+    };
   }
 
   private makeRowsFromCLES(CLES: any, cl_id: any) {
     let elements = [] as any;
     let rows = [] as any;
     let pCLES = JSON.parse(CLES);
-    pCLES.map((CLE: { cl_element_id: string; problem: any; answer: any; _public: any; })=> {
-      let row = [];
-      row.push(parseInt(CLE.cl_element_id))
-      row.push(CLE.problem)
-      row.push(CLE.answer)
-      row.push(parseInt(CLE._public))
-      row.push(cl_id);
-      rows.push(row);
+    pCLES.map(
+      (CLE: {
+        cl_element_id: string;
+        problem: any;
+        answer: any;
+        _public: any;
+      }) => {
+        let row = [];
+        row.push(parseInt(CLE.cl_element_id));
+        row.push(CLE.problem);
+        row.push(CLE.answer);
+        row.push(parseInt(CLE._public));
+        row.push(cl_id);
+        rows.push(row);
 
-      elements.push(CLE.answer);
-    })
-    return {rows, elements};
+        elements.push(CLE.answer);
+      }
+    );
+    return { rows, elements };
   }
 
   // C2 GET localhost:3001/api/cls
