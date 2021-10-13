@@ -112,21 +112,21 @@ export default (app: Router) => {
     }
   );
 
-  route.post(
-    "/test",
-    async (req: Request, res: Response, next: NextFunction) => {
-      const logger: Logger = Container.get("logger");
-      logger.debug(
-        `Calling POST '/api/questions/test', req.body: %o`,
-        req.body
-      );
+  // route.post(
+  //   "/test",
+  //   async (req: Request, res: Response, next: NextFunction) => {
+  //     const logger: Logger = Container.get("logger");
+  //     logger.debug(
+  //       `Calling POST '/api/questions/test', req.body: %o`,
+  //       req.body
+  //     );
 
-      const questionServiceInstance = Container.get(QuestionService);
-      const result = await questionServiceInstance.putUserQuestionsAfterCE(
-        41,
-        79
-      );
-      return res.status(200).json(result);
-    }
-  );
+  //     const questionServiceInstance = Container.get(QuestionService);
+  //     const result = await questionServiceInstance.putUserQuestionsAfterCE(
+  //       41,
+  //       79
+  //     );
+  //     return res.status(200).json(result);
+  //   }
+  // );
 };
