@@ -29,37 +29,31 @@ export default class CLService {
     tags: string,
     comments: string
   ): Promise<object> {
-    //1. 자소서문항정보 삽입하기, 이미있으면 업데이트
+
+    //1. 자소서문항정보 삽입, 이미있으면 업데이트
     const queryCLElement = `
         INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
         VALUES ?
         ON DUPLICATE KEY UPDATE modified_at = IF(problem <> VALUES(problem) OR answer <> VALUES(answer), NOW(), modified_at), problem = VALUES(problem), answer = VALUES(answer)`;
-    const { rows, elements } = this.makeRowsFromCLES(CLES, cl_id);
+    const { clesData, answerData } = this.makeClesDbFormat(CLES, cl_id);
     const [clElementResult] = (await this.db.query(queryCLElement, [
-      rows,
+      clesData,
     ])) as any;
 
-    //2. title, company, tags, comments 받아와서 저장하는부분
+    //2. 주고받기 정보(title, company, tags, comments) 받아와서 저장하는부분
 
-    //3. CE서버로 보내서 키워드 분석하는부분
+    //3. 자소서정보를 CE서버로 보내서 키워드 분석하는부분
     const putKeywordsInfoAfterCEResult = {} as any;
-    // (await this.keywordServiceInstance.putKeywordsInfoAfterCE(
-    //   user_id,
-    //   elements
-    // )) as any;
-
-    // 4. 키워드로 유저질문 생성하는부분
-    // 키워드가 너무 많아서,, 질문만들기도 엄청오래걸릴것같튼뎅,,
-    // await this.questionServiceInstance.putUserQuestionsAfterCE(user_id);
+    await this.keywordServiceInstance.putKeywordsInfoAfterCE(user_id, answerData)
 
     return {
-      cl_upload_info: clElementResult.info,
+      cl_upload_info: clElementResult.affectedRows,
       after_ce_info_keyword: putKeywordsInfoAfterCEResult.userKeyword,
       after_ce_info_indexes: putKeywordsInfoAfterCEResult.userIndexes,
     };
   }
 
-  private makeRowsFromCLES(CLES: any, cl_id: any) {
+  private makeClesDbFormat(CLES: any, cl_id: any) {
     let elements = [] as any;
     let rows = [] as any;
     let pCLES = JSON.parse(CLES);
@@ -81,7 +75,7 @@ export default class CLService {
         elements.push(CLE.answer);
       }
     );
-    return { rows, elements };
+    return { clesData: rows, answerData: elements };
   }
 
   // C2 GET localhost:3001/api/cls

@@ -19,29 +19,43 @@ export default class questionService {
   public async questionList(user_keyword_id: number): Promise<object> {
     let result = {} as any;
 
-    //1. 키워드에 접속하는 순간, 읽었음을 알리는 요청을 날린다.
+    //1. 키워드 읽음 요청
     const keywordServiceInstance = Container.get(KeywordService);
     const response = (await keywordServiceInstance.updateKeywordRead(
       user_keyword_id
     )) as any;
     result.isAnswerColUpdated = response.isUpdated;
 
-    //2. 선택한 키워드의 질문들을 뽑아내준다.
+    //2. 키워드에 대한 질문풀 저장 요청
+    result.newCreatedUserQuestions = 0;
+    if (result.isAnswerColUpdated == 1) { // 처음으로 키워드를 읽었다면
+      const keyword_id = await this.getKeywordIdByUserKeywordId(user_keyword_id);
+      const userQuestionResult = await this.putUserQuestionsAfterCE(user_keyword_id, keyword_id);
+      result.newCreatedUserQuestions = userQuestionResult;
+    }
+
+    //3. 키워드에 대한 질문 응답요청
     const queryQuestionInfo = `
       SELECT
       Q.question_id, Q.content, Q.type,
       UQ.user_question_id
       FROM Question Q 
       INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
-    // "SELECT * FROM Question WHERE question_id IN (SELECT question_id FROM UserQuestion WHERE user_keyword_id = (?))";
     const [questionInfoResult] = (await this.db.query(queryQuestionInfo, [
       user_keyword_id,
     ])) as any;
 
-    //3. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
+    //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
 
     result.questions = questionInfoResult;
     return result;
+  }
+
+  private async getKeywordIdByUserKeywordId(user_keyword_id: number) : Promise<number>{
+    const query = `
+      SELECT keyword_id FROM UserKeyword WHERE user_keyword_id = ? LIMIT 1`;
+    const [result] = await this.db.query(query, [user_keyword_id]) as any;
+    return 1;
   }
 
   // Q2 POST localhost:3001/api/questions/like
@@ -168,16 +182,21 @@ export default class questionService {
     return result;
   }
 
-  // Q6 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
-  public async putUserQuestionsAfterCE(
+  // 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
+  // 질문리스트를 요청하면 Q1에서 호출된다!
+  private async putUserQuestionsAfterCE(
     user_keyword_id: number,
     keyword_id: number
   ) {
-    // 해당 유저의 키워드와 관련된 질문을 KeywordsQuestions에서 뽑아서
-    // UserQuestion 테이블에 넣는다. -> 언제만 해야됨? (일단은 자소서를 등록했을때)
+    //0. IF EXIST 구문을 이용해서 만약에 user_keyword_id에 대한 질문이 이미 존재하면 그만 하고 나가기!
+    const queryExistCheck = `
+      SELECT * FROM UserQuestion WHERE user_keyword_id = ? LIMIT 1`;
+    const [queryExistCheckResult] = await this.db.query(queryExistCheck, [user_keyword_id]) as any;
+    if (queryExistCheckResult !== undefined) return 0;
+
     // 1. KeywordsQuestions 테이블에서 keyword_id를 통해서 question_id 를 뽑아낸다.
     const queryKeywordQuestionPairs = `
-      SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`;
+      SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`; 
     const [queryKeywordQuestionPairsResult] = (await this.db.query(
       queryKeywordQuestionPairs,
       [keyword_id]
@@ -195,8 +214,8 @@ export default class questionService {
     const [queryMakeUserQuestionsResult] = await this.db.query(
       queryMakeUserQuestions,
       [userQuestionsData]
-    );
-    return queryMakeUserQuestionsResult;
+    ) as any;
+    return queryMakeUserQuestionsResult.affectedRows;
   }
 
   private async makeUserQuestionsDbFormat(
