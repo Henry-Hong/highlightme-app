@@ -31,7 +31,57 @@ export default (app: Router) => {
     }
   });
 
-  // Q2 좋아요, Q3 싫어요 API는 굳이 라우터를 만들 필요가 없다잉..
+  // Q2 POST localhost:3001/api/questions/like
+  // 특정 질문에 대해 좋아요를 남길때!
+  route.post(
+    "/like",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST "/api/questions/like", req.body: %o`,
+        req.body
+      );
+      try {
+        const { question_id } = req.body;
+        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const questionServiceInstance = Container.get(QuestionService);
+        const result = await questionServiceInstance.questionLike(
+          parseInt(question_id),
+          parseInt(user_id)
+        );
+        return res.status(200).json(result);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
+
+  // Q3 POST localhost:3001/api/questions/dislike
+  // 특정 질문에 대해 싫어요를 남길때!
+  route.post(
+    "/dislike",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST "/api/questions/dislike", req.body: %o`,
+        req.body
+      );
+      try {
+        const { question_id, isUp } = req.body;
+        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const questionServiceInstance = Container.get(QuestionService);
+        const result = await questionServiceInstance.questionDislike(
+          parseInt(question_id),
+          parseInt(user_id)
+        );
+        return res.status(200).json(result);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
 
   // Q5 POST localhost:3001/api/questions/answer
   // 특정 질문에 대해 답하기!

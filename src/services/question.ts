@@ -28,9 +28,15 @@ export default class questionService {
 
     //2. 키워드에 대한 질문풀 저장 요청
     result.newCreatedUserQuestions = 0;
-    if (result.isAnswerColUpdated == 1) { // 처음으로 키워드를 읽었다면
-      const keyword_id = await this.getKeywordIdByUserKeywordId(user_keyword_id);
-      const userQuestionResult = await this.putUserQuestionsAfterCE(user_keyword_id, keyword_id);
+    if (result.isAnswerColUpdated == 1) {
+      // 처음으로 키워드를 읽었다면
+      const keyword_id = await this.getKeywordIdByUserKeywordId(
+        user_keyword_id
+      );
+      const userQuestionResult = await this.putUserQuestionsAfterCE(
+        user_keyword_id,
+        keyword_id
+      );
       result.newCreatedUserQuestions = userQuestionResult;
     }
 
@@ -51,18 +57,41 @@ export default class questionService {
     return result;
   }
 
-  private async getKeywordIdByUserKeywordId(user_keyword_id: number) : Promise<number>{
+  private async getKeywordIdByUserKeywordId(
+    user_keyword_id: number
+  ): Promise<number> {
     const query = `
       SELECT keyword_id FROM UserKeyword WHERE user_keyword_id = ? LIMIT 1`;
-    const [result] = await this.db.query(query, [user_keyword_id]) as any;
+    const [result] = (await this.db.query(query, [user_keyword_id])) as any;
     return 1;
+  }
+
+  private async isQuestionDislikeUp(question_id: number, user_id: number) {
+    const queryIsUp = `
+      SELECT * FROM Dislikes WHERE question_id = ? AND user_id = ?`;
+    const [queryIsUpResult] = (await this.db.query(queryIsUp, [
+      question_id,
+      user_id,
+    ])) as any;
+    if (queryIsUpResult.length == 0) return 0;
+    else return 1;
+  }
+
+  private async isQuestionLikeUp(question_id: number, user_id: number) {
+    const queryIsUp = `
+      SELECT * FROM Likes WHERE question_id = ? AND user_id = ?`;
+    const [queryIsUpResult] = (await this.db.query(queryIsUp, [
+      question_id,
+      user_id,
+    ])) as any;
+    if (queryIsUpResult.length == 0) return 0;
+    else return 1;
   }
 
   // Q2 POST localhost:3001/api/questions/like
   // 특정 질문에 대해 좋아요를 남길때!
   public async questionLike(
     question_id: number,
-    isUp: number,
     user_id: number
   ): Promise<object> {
     let result = {
@@ -70,6 +99,10 @@ export default class questionService {
       downDislike: false,
       deleted: false,
     } as any;
+
+    // 좋아요 상태인지 싫어요 상태인지 가져오기
+    const isUp = await this.isQuestionLikeUp(question_id, user_id);
+
     if (isUp === 0) {
       //좋아요활성화하고싶을때
       // case1: 좋down, 싫down OR 좋down, 싫up -> 좋up
@@ -110,7 +143,6 @@ export default class questionService {
   // 특정 질문에 대해 싫어요를 남길때!
   public async questionDislike(
     question_id: number,
-    isUp: number,
     user_id: number
   ): Promise<object> {
     let result = {
@@ -118,6 +150,9 @@ export default class questionService {
       downLike: false,
       deleted: false,
     } as any;
+
+    const isUp = await this.isQuestionDislikeUp(question_id, user_id);
+
     if (isUp === 0) {
       //싫어요 활성화하고싶을때
       // case1: 좋down, 싫down OR 좋up, 싫down
@@ -191,12 +226,14 @@ export default class questionService {
     //0. IF EXIST 구문을 이용해서 만약에 user_keyword_id에 대한 질문이 이미 존재하면 그만 하고 나가기!
     const queryExistCheck = `
       SELECT * FROM UserQuestion WHERE user_keyword_id = ? LIMIT 1`;
-    const [queryExistCheckResult] = await this.db.query(queryExistCheck, [user_keyword_id]) as any;
+    const [queryExistCheckResult] = (await this.db.query(queryExistCheck, [
+      user_keyword_id,
+    ])) as any;
     if (queryExistCheckResult !== undefined) return 0;
 
     // 1. KeywordsQuestions 테이블에서 keyword_id를 통해서 question_id 를 뽑아낸다.
     const queryKeywordQuestionPairs = `
-      SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`; 
+      SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`;
     const [queryKeywordQuestionPairsResult] = (await this.db.query(
       queryKeywordQuestionPairs,
       [keyword_id]
@@ -211,10 +248,10 @@ export default class questionService {
       user_keyword_id
     );
 
-    const [queryMakeUserQuestionsResult] = await this.db.query(
+    const [queryMakeUserQuestionsResult] = (await this.db.query(
       queryMakeUserQuestions,
       [userQuestionsData]
-    ) as any;
+    )) as any;
     return queryMakeUserQuestionsResult.affectedRows;
   }
 
