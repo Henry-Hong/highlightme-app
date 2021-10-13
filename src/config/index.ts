@@ -29,7 +29,8 @@ export default {
   dbUser: process.env.DB_USER,
   dbName: process.env.DB_NAME,
   dbPassword: process.env.DB_PW,
-  ceServerURL: "http://localhost:3002/ce", //not sure "http://" needed or not
+  ceServerURL: process.env.CE_SERVER_URL, //not sure "http://" needed or not
+  ceServerURLaws: process.env.CE_SERVER_URL_AWS,
   api: {
     prefix: "/api",
   },
