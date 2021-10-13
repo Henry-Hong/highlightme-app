@@ -38,7 +38,7 @@ export default class questionService {
     const queryQuestionInfo = `
       SELECT
       Q.question_id, Q.content, Q.type,
-      UQ.user_question_id
+      UQ.user_question_id, UQ.answer
       FROM Question Q 
       INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
     const [questionInfoResult] = (await this.db.query(queryQuestionInfo, [
