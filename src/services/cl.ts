@@ -93,10 +93,10 @@ export default class CLService {
 
   private async getOrCreateCLId(user_id: any) {
     //디비를 거쳐서 cl_id를 가져온다.
-    const { cl_id } = await this.getCLIdFromUserId(user_id);
+    const { cl_id } = (await this.getCLIdFromUserId(user_id)) as any;
 
     //빈객체이면 유저의 cl_id정보를 만든다.
-    if (cl_id === undefined) {
+    if (cl_id == -1) {
       const queryClInitialize = `
         INSERT INTO CL (user_id, title, company, tags, comment, view_num, user_question_num, created_at)
         VALUES (?, "init", "init", "init", "init", 0, 0, NOW())`;
@@ -117,7 +117,7 @@ export default class CLService {
     user_id: number
   ): Promise<object> {
     //디비를 거쳐서 cl_id를 가져온다.
-    const { cl_id } = await this.getCLIdFromUserId(user_id);
+    const { cl_id } = (await this.getCLIdFromUserId(user_id)) as any;
 
     let result = {} as any;
 
@@ -145,14 +145,13 @@ export default class CLService {
 
   private async getCLIdFromUserId(user_id: number) {
     const queryGetCLIdFromUserId = `
-      SELECT cl_id FROM CL WHERE user_id = ?`;
-    const [queryGetCLIdFromUserIdResult] = await this.db.query(
+      SELECT cl_id FROM CL WHERE user_id = ? LIMIT 1`;
+    const [queryGetCLIdFromUserIdResult] = (await this.db.query(
       queryGetCLIdFromUserId,
       [user_id]
-    );
-    const [queryGetCLIdFromUserIdResultParsed] = this.parseObj(
-      queryGetCLIdFromUserIdResult
-    );
-    return { cl_id: queryGetCLIdFromUserIdResultParsed.cl_id };
+    )) as any;
+
+    if (queryGetCLIdFromUserIdResult.length == 0) return { cl_id: -1 };
+    else return queryGetCLIdFromUserIdResult[0];
   }
 }

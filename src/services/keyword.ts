@@ -103,7 +103,7 @@ export default class KeywordService {
       //1. 자기소개서를 코어엔진에게 키워드 추출 요청
       let ceResult: IKeyword[][] = [];
       await axios
-        .post(config.ceServerURL + "/keywords", {
+        .post(config.ceServerURLaws + "/keywords", {
           elements: JSON.stringify(elements),
         })
         .then(function (response: any) {
@@ -113,7 +113,6 @@ export default class KeywordService {
           console.log("에러가났어욤", error);
           throw error;
         });
-
       // 2. 기존에 저장된 키워드를 지워버리기.. 이러면안될텐데!?
       const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
       const [queryDeleteAllRowsResult] = await db.query(queryDeleteAllRows, [
