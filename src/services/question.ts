@@ -33,9 +33,9 @@ export default class questionService {
     result.newCreatedUserQuestions = 0;
     if (result.isAnswerColUpdated == 1) {
       // 처음으로 키워드를 읽었다면
-      const keyword_id = await this.getKeywordIdByUserKeywordId(
+      const { keyword_id } = (await this.getKeywordIdByUserKeywordId(
         user_keyword_id
-      );
+      )) as any;
       const userQuestionResult = await this.putUserQuestionsAfterCE(
         user_keyword_id,
         keyword_id
@@ -66,11 +66,12 @@ export default class questionService {
 
   private async getKeywordIdByUserKeywordId(
     user_keyword_id: number
-  ): Promise<number> {
+  ): Promise<object> {
     const query = `
       SELECT keyword_id FROM UserKeyword WHERE user_keyword_id = ? LIMIT 1`;
     const [result] = (await this.db.query(query, [user_keyword_id])) as any;
-    return 1;
+
+    return result[0];
   }
 
   private async isQuestionDislikeUp(question_id: number, user_id: number) {
@@ -236,7 +237,7 @@ export default class questionService {
     const [queryExistCheckResult] = (await this.db.query(queryExistCheck, [
       user_keyword_id,
     ])) as any;
-    if (queryExistCheckResult !== undefined) return 0;
+    if (queryExistCheckResult.length !== 0) return 0;
 
     // 1. KeywordsQuestions 테이블에서 keyword_id를 통해서 question_id 를 뽑아낸다.
     const queryKeywordQuestionPairs = `
@@ -254,11 +255,11 @@ export default class questionService {
       queryKeywordQuestionPairsResult,
       user_keyword_id
     );
-
     const [queryMakeUserQuestionsResult] = (await this.db.query(
       queryMakeUserQuestions,
       [userQuestionsData]
     )) as any;
+
     return queryMakeUserQuestionsResult.affectedRows;
   }
 

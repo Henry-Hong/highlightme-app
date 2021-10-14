@@ -29,7 +29,6 @@ export default class CLService {
     tags: string,
     comments: string
   ): Promise<object> {
-
     //1. 자소서문항정보 삽입, 이미있으면 업데이트
     const queryCLElement = `
         INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
@@ -43,8 +42,11 @@ export default class CLService {
     //2. 주고받기 정보(title, company, tags, comments) 받아와서 저장하는부분
 
     //3. 자소서정보를 CE서버로 보내서 키워드 분석하는부분
-    const putKeywordsInfoAfterCEResult = {} as any;
-    await this.keywordServiceInstance.putKeywordsInfoAfterCE(user_id, answerData)
+    const putKeywordsInfoAfterCEResult =
+      (await this.keywordServiceInstance.putKeywordsInfoAfterCE(
+        user_id,
+        answerData
+      )) as any;
 
     return {
       cl_upload_info: clElementResult.affectedRows,
@@ -86,7 +88,7 @@ export default class CLService {
     const queryGetCLEs = `
       SELECT * FROM CLElement WHERE cl_id = ?`;
     const [queryGetCLEsResult] = await this.db.query(queryGetCLEs, [cl_id]);
-    return { isNew: isNew, result: queryGetCLEsResult };
+    return { isNew: isNew, cl_id: cl_id, result: queryGetCLEsResult };
   }
 
   private async getOrCreateCLId(user_id: any) {
@@ -151,6 +153,6 @@ export default class CLService {
     const [queryGetCLIdFromUserIdResultParsed] = this.parseObj(
       queryGetCLIdFromUserIdResult
     );
-    return { cl_id: queryGetCLIdFromUserIdResultParsed };
+    return { cl_id: queryGetCLIdFromUserIdResultParsed.cl_id };
   }
 }
