@@ -22,7 +22,8 @@ export default (app: Router) => {
       const { user_keyword_id } = req.body;
       const questionServiceInstance = Container.get(QuestionService);
       const result = await questionServiceInstance.questionList(
-        parseInt(user_keyword_id)
+        parseInt(user_keyword_id),
+        parseInt(user_id)
       );
       return res.json(result).status(200);
     } catch (e) {

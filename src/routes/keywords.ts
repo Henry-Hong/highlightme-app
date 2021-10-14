@@ -84,8 +84,9 @@ export default (app: Router) => {
         logger.error("🔥 error: %o", e);
         return next(e);
       }
-    })
-  
+    }
+  );
+
   route.get(
     "/test",
     async (req: Request, res: Response, next: NextFunction) => {
@@ -99,5 +100,4 @@ export default (app: Router) => {
       res.send(result);
     }
   );
-}
-
+};

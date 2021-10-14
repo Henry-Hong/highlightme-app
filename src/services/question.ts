@@ -16,7 +16,10 @@ export default class questionService {
 
   // Q1 GET localhost:3001/api/questions
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
-  public async questionList(user_keyword_id: number): Promise<object> {
+  public async questionList(
+    user_keyword_id: number,
+    user_id: number
+  ): Promise<object> {
     let result = {} as any;
 
     //1. 키워드 읽음 요청
@@ -44,14 +47,18 @@ export default class questionService {
     const queryQuestionInfo = `
       SELECT
       Q.question_id, Q.content, Q.type,
-      UQ.user_question_id, UQ.answer
-      FROM Question Q 
+      UQ.user_question_id, UQ.answer,
+      IF(EXISTS (SELECT * FROM Likes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS likes,
+      IF(EXISTS (SELECT * FROM Dislikes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS dislike
+      FROM Question Q
       INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
     const [questionInfoResult] = (await this.db.query(queryQuestionInfo, [
+      user_id,
+      user_id,
       user_keyword_id,
     ])) as any;
 
-    //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
+    // //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
 
     result.questions = questionInfoResult;
     return result;
