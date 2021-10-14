@@ -17,9 +17,9 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 export default () => {
   passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
     if (user.provider == "google") {
-      done(undefined, user.email); //세션에 자동 저장
+      done(undefined, { user_id: user.user_id }); //세션에 자동 저장
     } else {
-      done(undefined, user.email);
+      done(undefined, { user_id: user.user_id });
     }
     // 다른 oauth 등록 하려면 console.log(user) 먼저 해보기!
     // else if (user.provider == "kakao") {
@@ -28,11 +28,11 @@ export default () => {
   });
 
   passport.deserializeUser(
-    (email: any, done: (err: any, user: any) => void) => {
+    (user_id: any, done: (err: any, user: any) => void) => {
       // UserCollection.findById(id, (err: Error, user: UserDocument) => {
       //   done(err, user);
       // });
-      done(undefined, email);
+      done(undefined, user_id);
     }
   );
 
