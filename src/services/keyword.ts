@@ -116,115 +116,123 @@ export default class KeywordService {
 
       // 2. 기존에 저장된 키워드를 지워버리기.. 이러면안될텐데!?
       const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
-      const [queryDeleteAllRowsResult] = await db.query(queryDeleteAllRows, [user_id]);
-      
+      const [queryDeleteAllRowsResult] = await db.query(queryDeleteAllRows, [
+        user_id,
+      ]);
+
       // 3. 엔진에서 추출된 키워드를 디비에 넣기
-      const { keywordsData, indexesResult } = await this.makeKeywordsDbFormat(ceResult, user_id) as any;
-      if (keywordsData == undefined) {  // keywordsData가 없으면 넣을게 없으니까 바로 종료~
-        result.userKeyword = "Your CL has no keywords matching in our database!";
-        result.userIndexes = "Your CL has no keywords matching in our database!";
+      const { keywordsData, indexesResult } = (await this.makeKeywordsDbFormat(
+        ceResult,
+        user_id
+      )) as any;
+      if (keywordsData == undefined) {
+        // keywordsData가 없으면 넣을게 없으니까 바로 종료~
+        result.userKeyword =
+          "Your CL has no keywords matching in our database!";
+        result.userIndexes =
+          "Your CL has no keywords matching in our database!";
         return result;
       }
-        
+
       // 3-1. UserKeyword 테이블에다가 keywordsData를 넣습니다.
       const queryUserkeyword = `INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready) VALUES ?`;
       const [userKeywordResult] = (await db.query(queryUserkeyword, [
-          keywordsData,
+        keywordsData,
       ])) as any;
       result.userKeyword = userKeywordResult.info;
 
       //3-2. FromCL 테이블에다가 indexesData를 넣습니다.
       let user_keyword_id: number = userKeywordResult.insertId;
-      const { indexesData } = await this.makeIndexesDbFormat(indexesResult, user_keyword_id) as any;
+      const { indexesData } = (await this.makeIndexesDbFormat(
+        indexesResult,
+        user_keyword_id
+      )) as any;
       const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index) VALUES ?`;
-      const [queryIndexesToFromCLResult] = await db.query(
+      const [queryIndexesToFromCLResult] = (await db.query(
         queryIndexesToFromCL,
         [indexesData]
-      ) as any;
+      )) as any;
       result.userIndexes = queryIndexesToFromCLResult.info;
 
       return result;
     } catch (error) {
-      throw (error);
+      throw error;
     }
   }
-  
+
   private async makeIndexesDbFormat(
     indexesResult: any,
-    user_keyword_id : number
+    user_keyword_id: number
   ) {
     let indexesData = [] as any;
-      let cl_element_id = 1;
-      indexesResult.forEach((keywords : any) => {
-        keywords.map((K: any[]) => {
-          K.map((k: any) => {
-            indexesData.push([user_keyword_id, cl_element_id, k]);
-          });
-          user_keyword_id++;
+    let cl_element_id = 1;
+    indexesResult.forEach((keywords: any) => {
+      keywords.map((K: any[]) => {
+        K.map((k: any) => {
+          indexesData.push([user_keyword_id, cl_element_id, k]);
         });
-        cl_element_id++;
+        user_keyword_id++;
       });
+      cl_element_id++;
+    });
     return { indexesData };
   }
 
-  private async makeKeywordsDbFormat(
-    ceResult: any,
-    user_id: number
-  ) {
-      let keywordsData: any[] = [];
-      let indexesResult: any[] = [];
-      ceResult.forEach((keywordsInCLE : any) => {
-        let indexesInCLE: any[] = [];
-        keywordsInCLE.map((k : any) => {
-          if (k.type === 1) {
-            //실존하는 키워드만 넣음
-            if (k.indices.length > 0) {
-              indexesInCLE.push(k.indices);
-            }
-            keywordsData.push([k.id, user_id, false, true, true]);
+  private async makeKeywordsDbFormat(ceResult: any, user_id: number) {
+    let keywordsData: any[] = [];
+    let indexesResult: any[] = [];
+    ceResult.forEach((keywordsInCLE: any) => {
+      let indexesInCLE: any[] = [];
+      keywordsInCLE.map((k: any) => {
+        if (k.type === 1) {
+          //실존하는 키워드만 넣음
+          if (k.indices.length > 0) {
+            indexesInCLE.push(k.indices);
           }
-        });
-        indexesResult.push(indexesInCLE);
+          keywordsData.push([k.id, user_id, false, true, true]);
+        }
       });
-    
+      indexesResult.push(indexesInCLE);
+    });
+
     return { keywordsData: keywordsData, indexesResult: indexesResult };
   }
 }
 
 // const data = [
-      //   [
-      //     {
-      //       rawKeyword: "DI",
-      //       indices: [6],
-      //       type: 1,
-      //       id: 205,
-      //       keyword: "종속성 주입",
-      //     },
-      //     {
-      //       rawKeyword: "고등학교",
-      //       indices: [14],
-      //       type: 0,
-      //     },
-      //   ],
-      //   [
-      //     {
-      //       rawKeyword: "abc",
-      //       indices: [1, 2, 3],
-      //       type: 1,
-      //       id: 205,
-      //       keyword: "ABc",
-      //     },
-      //     {
-      //       rawKeyword: "abcd",
-      //       indices: [5, 6, 7, 8],
-      //       type: 0,
-      //     },
-      //     {
-      //       rawKeyword: "abcde",
-      //       indices: [9, 10, 11, 12, 13],
-      //       type: 0,
-      //     },
-      //   ],
-      // ];
+//   [
+//     {
+//       rawKeyword: "DI",
+//       indices: [6],
+//       type: 1,
+//       id: 205,
+//       keyword: "종속성 주입",
+//     },
+//     {
+//       rawKeyword: "고등학교",
+//       indices: [14],
+//       type: 0,
+//     },
+//   ],
+//   [
+//     {
+//       rawKeyword: "abc",
+//       indices: [1, 2, 3],
+//       type: 1,
+//       id: 205,
+//       keyword: "ABc",
+//     },
+//     {
+//       rawKeyword: "abcd",
+//       indices: [5, 6, 7, 8],
+//       type: 0,
+//     },
+//     {
+//       rawKeyword: "abcde",
+//       indices: [9, 10, 11, 12, 13],
+//       type: 0,
+//     },
+//   ],
+// ];
 
-      // let elements = [`스레드. 고등학교 동아리에서 처음 개발을 접했습니다. 안드로이드 앱을 만들어보며 내가 작성한 코드 대로 화면이 전환되는 모습에 흥미를 느꼈습니다. 시험기간이 끝날때마다 안드로이드 개발을 잘하던 친구와 함께 학교 정보를 제공하는 앱을 개발했습니다. 학교 홈페이지에 올라오는 식단 정보를 파싱해서 화면에 띄우는 작업을 했는데, 안드로이드에선 네트워크 작업을 비동기 프로세스로 처리해야만 했습니다. 동기와 비동기에 대한 지식이 부족했지만 밤을 새워가며 ASyncTask를 이용해 개발했습니다. 나중에 대학교 저학년 때 코틀린이 처음 도입되면서 Coroutine 이라는 개념을 배워 비동기 작업에 대한 처리를 개선해서 업데이트하기도 했습니다. 대학교에 진학하고 자연스레 모바일 앱 개발 동아리에 합류하여 여러가지 프로젝트를 진행했습니다. 첫번째로는 패션 정보를 추천 서비스 프로젝트에 안드로이드 개발을 담당했습니다. 백엔드 개발자가 따로 없었기 때문에 Firebase를 활용해서 Database를 사용했습니다. Firebase Firestore 특성상 안드로이드에서 직접 DB를 제어해야했습니다. 피드를 구현하는 과정에서 Not In 쿼리를 필요로 했는데, 당시 Firestore에는 해당 기능을 제공하고 있지 않았습니다. 고민 끝에 안드로이드에 Room을 활용한 Local DB를 따로 두는 방법으로 문제를 해결했습니다. 이 프로젝트에서 처음 Kotlin을 도입해보기도 했고 다양한 라이브러리를 활용하며 개발하는 방법을 배웠습니다. 두번째로는 블랙박스 영상을 공유 서비스를 만들었습니다. 선배의 도움으로 MVP, MVVM과 같은 아키텍처의 개념에 대해 배우고 처음으로 앱 개발에 적용해보았습니다. AAC의 View Binding, ViewModel 등의 기능을 통해 MVVM 설계를 적용해보았고, 각 컴포넌트의 역할을 확실히 구분하게 되면서 테스트도 간단하고 명료해졌습니다. 영상 공유 서버와 연결하는 컴포넌트에서는 성능 저하 이슈가 발생하여 다중 Thread로 작업을 나누었고 그 결과 10초 이상 걸리던 연결 시간이 평균 500ms로 감소시키는데 성공했습니다. 개발에 있어서 설계와 최적화의 중요성을 깊이 깨달을 수 있던 경험이었습니다.`];
+// let elements = [`스레드. 고등학교 동아리에서 처음 개발을 접했습니다. 안드로이드 앱을 만들어보며 내가 작성한 코드 대로 화면이 전환되는 모습에 흥미를 느꼈습니다. 시험기간이 끝날때마다 안드로이드 개발을 잘하던 친구와 함께 학교 정보를 제공하는 앱을 개발했습니다. 학교 홈페이지에 올라오는 식단 정보를 파싱해서 화면에 띄우는 작업을 했는데, 안드로이드에선 네트워크 작업을 비동기 프로세스로 처리해야만 했습니다. 동기와 비동기에 대한 지식이 부족했지만 밤을 새워가며 ASyncTask를 이용해 개발했습니다. 나중에 대학교 저학년 때 코틀린이 처음 도입되면서 Coroutine 이라는 개념을 배워 비동기 작업에 대한 처리를 개선해서 업데이트하기도 했습니다. 대학교에 진학하고 자연스레 모바일 앱 개발 동아리에 합류하여 여러가지 프로젝트를 진행했습니다. 첫번째로는 패션 정보를 추천 서비스 프로젝트에 안드로이드 개발을 담당했습니다. 백엔드 개발자가 따로 없었기 때문에 Firebase를 활용해서 Database를 사용했습니다. Firebase Firestore 특성상 안드로이드에서 직접 DB를 제어해야했습니다. 피드를 구현하는 과정에서 Not In 쿼리를 필요로 했는데, 당시 Firestore에는 해당 기능을 제공하고 있지 않았습니다. 고민 끝에 안드로이드에 Room을 활용한 Local DB를 따로 두는 방법으로 문제를 해결했습니다. 이 프로젝트에서 처음 Kotlin을 도입해보기도 했고 다양한 라이브러리를 활용하며 개발하는 방법을 배웠습니다. 두번째로는 블랙박스 영상을 공유 서비스를 만들었습니다. 선배의 도움으로 MVP, MVVM과 같은 아키텍처의 개념에 대해 배우고 처음으로 앱 개발에 적용해보았습니다. AAC의 View Binding, ViewModel 등의 기능을 통해 MVVM 설계를 적용해보았고, 각 컴포넌트의 역할을 확실히 구분하게 되면서 테스트도 간단하고 명료해졌습니다. 영상 공유 서버와 연결하는 컴포넌트에서는 성능 저하 이슈가 발생하여 다중 Thread로 작업을 나누었고 그 결과 10초 이상 걸리던 연결 시간이 평균 500ms로 감소시키는데 성공했습니다. 개발에 있어서 설계와 최적화의 중요성을 깊이 깨달을 수 있던 경험이었습니다.`];
