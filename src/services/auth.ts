@@ -44,7 +44,7 @@ export default () => {
         callbackURL: process.env.GOOGLE_CALLBACK_URL,
       },
       async (accessToken, refreshToken, profile, done) => {
-        // console.log("profile", profile);
+        console.log("profile", profile);
         const db = Container.get<mysql2.Connection>("db");
         const {
           id: tokenId,
@@ -57,6 +57,7 @@ export default () => {
           const [userExistResultParse] = JSON.parse(
             JSON.stringify(userExistResult)
           );
+          let user_id = userExistResultParse?.user_id;
           // console.log(userExistResultParse.password);
 
           // 회원가입절차 진행
@@ -70,16 +71,13 @@ export default () => {
               tokenId,
               "sampleNickName",
               "2",
-            ]);
-            // console.log(createUserResult);
-            // const [createUserResultParse] = JSON.parse(
-            //   JSON.stringify(createUserResult)
-            // );
-            return done(null, { tokenId, email, provider, isNew: true });
+            ]) as any;
+            if (user_id === undefined) user_id = createUserResult.insertId;
+            return done(null, { tokenId, email, provider, user_id, isNew: true });
           }
           // 이미 있는 계정이면..
           // 로그인을 시켜야겠지?
-          return done(null, { tokenId, email, provider, isNew: false });
+          return done(null, { tokenId, email, provider, user_id, isNew: false });
         } catch (error: any) {
           return done(error);
         }

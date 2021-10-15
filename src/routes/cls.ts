@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { Container } from "typedi";
 import { celebrate, Joi, Segments } from "celebrate";
 import { Logger } from "winston";
+import cookieParser from "cookie-parser"
 
 import CLService from "../services/cl";
 import config from "../config";
@@ -9,6 +10,7 @@ import { IUserInputDTO } from "../interfaces/IUser";
 import { resourceLimits } from "worker_threads";
 import TestService from "../services/test";
 import KeywordService from "../services/keyword";
+import cors from "cors";
 
 const route = Router();
 
@@ -23,6 +25,7 @@ export default (app: Router) => {
       logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
 
       try {
+        console.log(req.user);
         const { user_id } = (req.user as any) || { user_id: 7 };
         const { CLES, cl_id, title, company, tags, comments } = req.body;
         const clServiceInstance = Container.get(CLService);
@@ -43,9 +46,36 @@ export default (app: Router) => {
     }
   );
 
+  // function corsCheck(req : any, callback : any) {
+  // let corsOptions;
+  // const acceptList = ["https://www.hlight.me", "https://hlight.me", "http://localhost:3000"]
+  // if (acceptList.indexOf(req.header('Origin')) !== -1) {
+  //   corsOptions = { origin: true, credential: true };
+  // } else {
+  //   corsOptions = { origin: false };
+  // }
+  // callback(null, corsOptions);
+// }
+
   //C2 GET localhost:3001/api/cls
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling GET '/api/cls', req.body: %o`, req.body);
+
+    res.cookie("connect.sid2", "asdf", {
+      secure: true,
+      domain: "hlight.me",
+      sameSite: "none"
+    });
+
+    res.cookie("connect.sid3", "asdf", {
+      secure: true,
+      domain: "localhost:3000",
+      sameSite: "none"
+    });
+
+    console.log("쿠키", req.cookies);
+    console.log("헤더", JSON.parse(JSON.stringify(req.headers)))
+    console.log("유저", req.user)
 
     try {
       const { user_id } = (req.user as any) || { user_id: 7 };
