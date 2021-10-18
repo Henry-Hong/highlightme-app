@@ -1,14 +1,5 @@
 import { Container, Service, Inject } from "typedi";
 import mysql2 from "mysql2/promise";
-import config from "../config";
-import { randomBytes } from "crypto";
-import { Logger, loggers } from "winston";
-import crypto from "crypto";
-import bycrypt from "bcrypt";
-
-import { IUser, IUserInputDTO } from "../interfaces/IUser";
-import { json } from "express";
-import { parse, resolve } from "path/posix";
 
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -16,6 +7,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 export default () => {
   passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
+    console.log("serializeUser", user);
     if (user.provider == "google") {
       done(undefined, { user_id: user.user_id }); //세션에 자동 저장
     } else {
@@ -32,6 +24,7 @@ export default () => {
       // UserCollection.findById(id, (err: Error, user: UserDocument) => {
       //   done(err, user);
       // });
+      console.log("deserializeUser", user_id);
       done(undefined, user_id);
     }
   );
@@ -66,18 +59,30 @@ export default () => {
             const queryCreateUser = `
               INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
               VALUES(?,?,?,?,NOW(),NOW())`;
-            const [createUserResult] = await db.query(queryCreateUser, [
+            const [createUserResult] = (await db.query(queryCreateUser, [
               email,
               tokenId,
               "sampleNickName",
               "2",
-            ]) as any;
+            ])) as any;
             if (user_id === undefined) user_id = createUserResult.insertId;
-            return done(null, { tokenId, email, provider, user_id, isNew: true });
+            return done(null, {
+              tokenId,
+              email,
+              provider,
+              user_id,
+              isNew: true,
+            });
           }
           // 이미 있는 계정이면..
           // 로그인을 시켜야겠지?
-          return done(null, { tokenId, email, provider, user_id, isNew: false });
+          return done(null, {
+            tokenId,
+            email,
+            provider,
+            user_id,
+            isNew: false,
+          });
         } catch (error: any) {
           return done(error);
         }

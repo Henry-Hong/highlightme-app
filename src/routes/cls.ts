@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { Container } from "typedi";
 import { celebrate, Joi, Segments } from "celebrate";
 import { Logger } from "winston";
-import cookieParser from "cookie-parser"
+import cookieParser from "cookie-parser";
 
 import CLService from "../services/cl";
 import config from "../config";
@@ -19,32 +19,29 @@ export default (app: Router) => {
   const logger: Logger = Container.get("logger");
 
   //C1 POST localhost:3001/api/cls
-  route.post(
-    "/",
-    async (req: Request, res: Response, next: NextFunction) => {
-      logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
+  route.post("/", async (req: Request, res: Response, next: NextFunction) => {
+    logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
 
-      try {
-        console.log(req.user);
-        const { user_id } = (req.user as any) || { user_id: 7 };
-        const { CLES, cl_id, title, company, tags, comments } = req.body;
-        const clServiceInstance = Container.get(CLService);
-        const result = await clServiceInstance.makeCLE(
-          CLES,
-          parseInt(cl_id),
-          parseInt(user_id),
-          title,
-          company,
-          tags,
-          comments
-        );
-        return res.status(200).json(result);
-      } catch (e) {
-        logger.error("🔥 error: %o", e);
-        return next(e);
-      }
+    try {
+      console.log(req.user);
+      const { user_id } = (req.user as any) || { user_id: 7 };
+      const { CLES, cl_id, title, company, tags, comments } = req.body;
+      const clServiceInstance = Container.get(CLService);
+      const result = await clServiceInstance.makeCLE(
+        CLES,
+        parseInt(cl_id),
+        parseInt(user_id),
+        title,
+        company,
+        tags,
+        comments
+      );
+      return res.status(200).json(result);
+    } catch (e) {
+      logger.error("🔥 error: %o", e);
+      return next(e);
     }
-  );
+  });
 
   // function corsCheck(req : any, callback : any) {
   // let corsOptions;
@@ -55,27 +52,11 @@ export default (app: Router) => {
   //   corsOptions = { origin: false };
   // }
   // callback(null, corsOptions);
-// }
+  // }
 
   //C2 GET localhost:3001/api/cls
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
-    logger.debug(`Calling GET '/api/cls', req.body: %o`, req.body);
-
-    res.cookie("connect.sid2", "asdf", {
-      secure: true,
-      domain: "hlight.me",
-      sameSite: "none"
-    });
-
-    res.cookie("connect.sid3", "asdf", {
-      secure: true,
-      domain: "localhost:3000",
-      sameSite: "none"
-    });
-
-    console.log("쿠키", req.cookies);
-    console.log("헤더", JSON.parse(JSON.stringify(req.headers)))
-    console.log("유저", req.user)
+    logger.debug(`Calling GET '/api/cls', req.user: %o`, req.user);
 
     try {
       const { user_id } = (req.user as any) || { user_id: 7 };

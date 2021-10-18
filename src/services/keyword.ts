@@ -100,10 +100,13 @@ export default class KeywordService {
     try {
       let result = {} as any;
 
+      console.log("user_id",user_id);
+      
+
       //1. 자기소개서를 코어엔진에게 키워드 추출 요청
       let ceResult: IKeyword[][] = [];
       await axios
-        .post(config.ceServerURLaws + "/keywords", {
+        .post(config.ceServerURL + "/keywords", {
           elements: JSON.stringify(elements),
         })
         .then(function (response: any) {
