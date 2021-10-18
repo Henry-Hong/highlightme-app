@@ -100,8 +100,6 @@ export default class KeywordService {
     try {
       let result = {} as any;
 
-      console.log("user_id", user_id);
-
       //1. 자기소개서를 코어엔진에게 키워드 추출 요청
       let ceResult: IKeyword[][] = [];
       await axios
@@ -148,7 +146,7 @@ export default class KeywordService {
         indexesResult,
         user_keyword_id
       )) as any;
-      const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index) VALUES ?`;
+      const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index, length) VALUES ?`;
       const [queryIndexesToFromCLResult] = (await db.query(
         queryIndexesToFromCL,
         [indexesData]
@@ -167,10 +165,15 @@ export default class KeywordService {
   ) {
     let indexesData = [] as any;
     let cl_element_id = 1;
-    indexesResult.forEach((keywords: any) => {
-      keywords.map((K: any[]) => {
-        K.map((k: any) => {
-          indexesData.push([user_keyword_id, cl_element_id, k]);
+    indexesResult.forEach((CLEs: any) => {
+      CLEs.map((KeywordsInCLE: any[]) => {
+        KeywordsInCLE.map((Keyword: any) => {
+          indexesData.push([
+            user_keyword_id,
+            cl_element_id,
+            Keyword[0],
+            Keyword[1],
+          ]);
         });
         user_keyword_id++;
       });
@@ -185,13 +188,10 @@ export default class KeywordService {
     ceResult.forEach((keywordsInCLE: any) => {
       let indexesInCLE: any[] = [];
       keywordsInCLE.map((k: any) => {
-        if (k.type === 1) {
-          //실존하는 키워드만 넣음
-          if (k.indices.length > 0) {
-            indexesInCLE.push(k.indices);
-          }
-          keywordsData.push([k.id, user_id, false, true, true]);
+        if (k.indices.length > 0) {
+          indexesInCLE.push(k.indices);
         }
+        keywordsData.push([k.id, user_id, false, true, true]);
       });
       indexesResult.push(indexesInCLE);
     });
@@ -199,6 +199,16 @@ export default class KeywordService {
     return { keywordsData: keywordsData, indexesResult: indexesResult };
   }
 }
+
+// {
+//   "indices": [
+//    [0, 3],
+// 	  [33, 5],
+// 	  [49, 5],
+//   ],
+//   "id": 1007,
+//   "keyword": "React"
+// },
 
 // const data = [
 //   [
