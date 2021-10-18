@@ -9,6 +9,10 @@ export default (app: Router) => {
 
   //localhost:3001/api/tests/
   route.get("/", (req: Request, res: Response) => {
+    res.cookie("wtf", "20211015", {
+      sameSite: "none",
+      secure: true,
+    });
     return res.json({ msg: "아니 이제야 되네?" }).status(200);
   });
 

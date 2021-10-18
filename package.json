@@ -11,9 +11,11 @@
     "build:live": "set NODE_ENV=dev && nodemon --watch 'src/**/*.ts' --exec \"ts-node\" src/app.ts"
   },
   "dependencies": {
+    "@types/cookie-parser": "^1.4.2",
     "axios": "^0.22.0",
     "bcrypt": "^5.0.1",
     "celebrate": "^15.0.0",
+    "cookie-parser": "^1.4.5",
     "core-js": "^3.15.2",
     "cors": "^2.8.5",
     "crypto-js": "^4.1.1",
