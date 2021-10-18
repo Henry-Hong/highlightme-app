@@ -5,7 +5,7 @@ import path from "path";
 // process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
 let dotenvResult;
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === "prod") {
   dotenvResult = dotenv.config({
     path: path.join(__dirname, "../../env/.prod.env"),
   });
@@ -19,6 +19,8 @@ if (dotenvResult.error) {
   throw new Error("⚠️  Couldn't find .env file  ⚠️");
 }
 
+console.log("Started with", process.env.LOG_LEVEL);
+
 export default {
   port: process.env.PORT,
   logs: {
@@ -29,8 +31,7 @@ export default {
   dbUser: process.env.DB_USER,
   dbName: process.env.DB_NAME,
   dbPassword: process.env.DB_PW,
-  ceServerURL: process.env.CE_SERVER_URL, //not sure "http://" needed or not
-  ceServerURLaws: process.env.CE_SERVER_URL_AWS,
+  ceServerURL: process.env.CE_SERVER_URL,
   api: {
     prefix: "/api",
   },
