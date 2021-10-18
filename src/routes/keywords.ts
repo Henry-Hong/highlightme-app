@@ -22,7 +22,6 @@ export default (app: Router) => {
     logger.debug(`Calling GET '/api/keywords', req.body: %o`, req.body);
 
     console.log("req.user", req.user);
-    
 
     try {
       const { user_id } = (req.user as any) || { user_id: 7 };
@@ -87,20 +86,6 @@ export default (app: Router) => {
         logger.error("🔥 error: %o", e);
         return next(e);
       }
-    }
-  );
-
-  route.get(
-    "/test",
-    async (req: Request, res: Response, next: NextFunction) => {
-      const logger: Logger = Container.get("logger");
-      logger.debug(`테스트중임더!`);
-      const keywordServiceInstance = Container.get(KeywordService);
-      const result = await keywordServiceInstance.putKeywordsInfoAfterCE(
-        7,
-        "stringstringstring"
-      );
-      res.send(result);
     }
   );
 };
