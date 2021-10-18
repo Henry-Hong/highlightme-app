@@ -21,9 +21,6 @@ export default (app: Router) => {
     const logger: Logger = Container.get("logger");
     logger.debug(`Calling GET '/api/keywords', req.body: %o`, req.body);
 
-    console.log("req.user", req.user);
-    
-
     try {
       const { user_id } = (req.user as any) || { user_id: 7 };
       const keywordServiceInstance = Container.get(KeywordService);

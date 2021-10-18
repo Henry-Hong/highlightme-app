@@ -153,10 +153,34 @@ export default class KeywordService {
       )) as any;
       result.userIndexes = queryIndexesToFromCLResult.info;
 
+      // 3-3. UserKeyword 테이블에다가 인성키워드들을 넣습니다.
+      const queryPersonalityKeywords = `
+        INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
+        VALUES ?`;
+      const personalityKeywordsData = this.getPersonalityKeywordsData(user_id);
+      const [queryPersonalityKeywordsResult] = (await db.query(
+        queryPersonalityKeywords,
+        [personalityKeywordsData]
+      )) as any;
+      result.userPersonalityKeyword = queryPersonalityKeywordsResult.info;
+
       return result;
     } catch (error) {
       throw error;
     }
+  }
+
+  private getPersonalityKeywordsData(user_id: number) {
+    let rows = [
+      [2271, user_id, 0, 0, 1],
+      [2280, user_id, 0, 0, 1],
+      [2289, user_id, 0, 0, 1],
+      [2306, user_id, 0, 0, 1],
+      [2312, user_id, 0, 0, 1],
+      [2317, user_id, 0, 0, 1],
+      [2336, user_id, 0, 0, 1],
+    ];
+    return rows;
   }
 
   private async makeIndexesDbFormat(
