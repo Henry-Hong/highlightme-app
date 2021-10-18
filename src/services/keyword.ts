@@ -93,12 +93,28 @@ export default class KeywordService {
   // 자기소개서 업로드 후에 호출됨.
   public async putKeywordsInfoAfterCE(
     user_id: number,
-    elements: string
+    elements: string[]
   ): Promise<object> {
     const db = Container.get<mysql2.Connection>("db");
     const parseObj = (o: any) => JSON.parse(JSON.stringify(o));
     try {
       let result = {} as any;
+
+      console.log("user_id", user_id);
+
+      elements = elements.map((e) =>
+        e
+          .replace("\n", " ")
+          .replace("\r", " ")
+          .replace('"', " ")
+          .replace("'", " ")
+          .replace("{", " ")
+          .replace("}", " ")
+          .replace("(", " ")
+          .replace(")", " ")
+          .replace("[", " ")
+          .replace("]", " ")
+      );
 
       //1. 자기소개서를 코어엔진에게 키워드 추출 요청
       let ceResult: IKeyword[][] = [];
@@ -114,10 +130,10 @@ export default class KeywordService {
           throw error;
         });
       // 2. 기존에 저장된 키워드를 지워버리기.. 이러면안될텐데!?
-      const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
-      const [queryDeleteAllRowsResult] = await db.query(queryDeleteAllRows, [
-        user_id,
-      ]);
+      // const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
+      // const [queryDeleteAllRowsResult] = await db.query(queryDeleteAllRows, [
+      //   user_id,
+      // ]);
 
       // 3. 엔진에서 추출된 키워드를 디비에 넣기
       const { keywordsData, indexesResult } = (await this.makeKeywordsDbFormat(
