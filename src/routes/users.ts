@@ -49,7 +49,7 @@ export default (app: Router) => {
 
   //프론트에서 구글로그인, 백엔드에서 로컬하는부분!
   //{ user_id, googleId, email, isNew: true }
-  
+
   route.post(
     "/oauth/google",
     (req, res, next) => {
@@ -80,10 +80,10 @@ export default (app: Router) => {
     if (req.user) {
       console.log("어떤친구가 로그아웃함!");
       req.logout(); //로그아웃하고
-      res.redirect("/"); //메인으로 리다이렉트
+      res.status(200).send("logout success");
     } else {
       console.log("잘못된 요청입니다!");
-      res.redirect("/");
+      res.status(401).send("logout fail");
     }
   });
 

@@ -39,10 +39,12 @@ export default (app: express.Application) => {
       secret: process.env.SESSION_SECRET as string,
       resave: false,
       saveUninitialized: true,
-      cookie: {
-        httpOnly: false,
-        // maxAge: 1000 * 60 * 60,
-      },
+      // cookie: {
+      // httpOnly: false,
+      // secure: true,
+      // sameSite: "none",
+      // maxAge: 1000 * 60 * 60,
+      // },
     })
   );
 
