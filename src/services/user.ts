@@ -28,7 +28,7 @@ export default class UserService {
     email: string,
     password: string
   ): Promise<{ user: IUser; token: string }> {
-    const db = Container.get<mysql2.Connection>("db");
+    const db = Container.get<mysql2.PoolConnection>("db");
 
     const dummyUser: IUser = {
       _id: "sample id",
@@ -71,7 +71,7 @@ export default class UserService {
     fieldIds: number[]
   ): Promise<{ token: string }> {
     // 1. 커넥션
-    const db = Container.get<mysql2.Connection>("db");
+    const db = Container.get<mysql2.PoolConnection>("db");
 
     // 2. 이메일 벨리데이션 -> 이메일 중복확인
     const emailValidationQuery = "SELECT COUNT(*) FROM User WHERE email = ?";

@@ -7,6 +7,7 @@ import KeywordService from "../services/keyword";
 import QuestionService from "../services/question";
 
 import { ICL } from "../interfaces/ICL";
+import { ICLElementNode } from "../interfaces/ICLElementNode";
 import { addAbortSignal } from "stream";
 
 @Service()
@@ -14,9 +15,14 @@ export default class CLService {
   //공용 함수들!
   constructor(@Inject("logger") private logger: Logger) {}
   parseObj = (o: any) => JSON.parse(JSON.stringify(o));
-  db = Container.get<mysql2.Connection>("db");
+  db = Container.get<mysql2.PoolConnection>("db");
   keywordServiceInstance = Container.get(KeywordService);
   questionServiceInstance = Container.get(QuestionService);
+
+  private compareCLE(front: ICLElementNode, db: any) {
+    if (front.problem == db.problem && front.answer == db.answer) return 1;
+    else return 0;
+  }
 
   // C1 POST localhost:3001/api/cls
   // 자기소개서항목 등록 & 수정 할때
@@ -29,29 +35,77 @@ export default class CLService {
     tags: string,
     comments: string
   ): Promise<object> {
-    //1. 자소서문항정보 삽입, 이미있으면 업데이트
-    const queryCLElement = `
-        INSERT INTO CLElement (cl_element_id, problem, answer, public, cl_id)
-        VALUES ?
-        ON DUPLICATE KEY UPDATE modified_at = IF(problem <> VALUES(problem) OR answer <> VALUES(answer), NOW(), modified_at), problem = VALUES(problem), answer = VALUES(answer)`;
-    const { clesData, answerData } = this.makeClesDbFormat(CLES, cl_id);
-    const [clElementResult] = (await this.db.query(queryCLElement, [
-      clesData,
-    ])) as any;
+    let result = {} as any;
+    // CLES 파싱
+    let CLElements = JSON.parse(CLES);
+    let answerDatas: any[] = [];
 
-    //2. 주고받기 정보(title, company, tags, comments) 받아와서 저장하는부분
+    try {
+      await this.db.beginTransaction(); // START TRANSACTION
 
-    //3. 자소서정보를 CE서버로 보내서 키워드 분석하는부분
-    const putKeywordsInfoAfterCEResult =
-      (await this.keywordServiceInstance.putKeywordsInfoAfterCE(
-        user_id,
-        answerData
-      )) as any;
+      CLElements.map(async (cleFromFront: ICLElementNode) => {
+        const queryExistCLE = `
+        SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
+        const [cleFromDB] = (await this.db.query(queryExistCLE, [
+          parseInt(cleFromFront.cl_element_id),
+          cl_id,
+        ])) as any;
+        // 이미있는 자소서니까 UPDATE OR DoNothing
+        if (cleFromDB.length > 0) {
+          const isSameCLE = this.compareCLE(cleFromFront, cleFromDB[0]);
+          // 수정된 자소서라면
+          if (isSameCLE == 0) {
+            answerDatas.push(cleFromFront.answer);
+            // 업데이트 먼저 한다.
+            const queryCLEUpdate = `
+              UPDATE CLElement E SET E.problem=?, E.answer=?, E.modified_at=NOW() WHERE E.cl_element_id=? AND E.cl_id=?`;
+            const queryResult = (await this.db.query(queryCLEUpdate, [
+              cleFromFront.problem,
+              cleFromFront.answer,
+              cleFromFront.cl_element_id,
+              cl_id,
+            ])) as any;
 
+            // 기존 데이터를 삭제한다.
+          }
+          // 그대로인 자소서라면
+          else if (isSameCLE == 1) {
+            // pass
+          }
+        }
+        // 존재하지 않는 자소서니까 INSERT
+        else {
+          // 새로운 자소서 INSERT
+          answerDatas.push(cleFromFront.answer);
+          const queryCLEInsert = `
+            INSERT INTO CLElement (cl_element_id, problem, answer, cl_id, public)
+            VALUES (?,?,?,?,1)`;
+          const queryResult = (await this.db.query(queryCLEInsert, [
+            parseInt(cleFromFront.cl_element_id),
+            cleFromFront.problem,
+            cleFromFront.answer,
+            cl_id,
+          ])) as any;
+        }
+      });
+
+      await this.db.commit(); // COMMIT
+    } catch (err) {
+      console.log("rollback");
+      await this.db.rollback(); // ROLLBACK
+    } finally {
+      // 키워드 분석 새롭게 한다.
+      if (answerDatas.length > 0) {
+        const putKeywordsInfoAfterCEResult =
+          (await this.keywordServiceInstance.putKeywordsInfoAfterCE(
+            user_id,
+            answerDatas
+          )) as any;
+      }
+      await this.db.release();
+    }
     return {
-      cl_upload_info: clElementResult.affectedRows,
-      after_ce_info_keyword: putKeywordsInfoAfterCEResult.userKeyword,
-      after_ce_info_indexes: putKeywordsInfoAfterCEResult.userIndexes,
+      result: 1,
     };
   }
 
@@ -94,6 +148,8 @@ export default class CLService {
   private async getOrCreateCLId(user_id: any) {
     //디비를 거쳐서 cl_id를 가져온다.
     const { cl_id } = (await this.getCLIdFromUserId(user_id)) as any;
+    const personalityKeywordsResult =
+      await this.keywordServiceInstance.putPersonalityKeywords(user_id);
 
     //빈객체이면 유저의 cl_id정보를 만든다.
     if (cl_id == -1) {
@@ -104,7 +160,11 @@ export default class CLService {
         queryClInitialize,
         [user_id]
       )) as any;
-      return { cl_id: queryClInitializeResult.insertId, isNew: 1 };
+      return {
+        cl_id: queryClInitializeResult.insertId,
+        isNew: 1,
+        personalityKeywordsResult: personalityKeywordsResult,
+      };
     } else {
       return { cl_id: cl_id, isNew: 0 };
     }

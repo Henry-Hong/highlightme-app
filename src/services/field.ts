@@ -13,7 +13,7 @@ export default class fieldService {
   // GET localhost:3001/api/fields
   // 회원가입시, 직무리스트를 불러올때!
   public async getFieldsList(user_id: number): Promise<object> {
-    const db = Container.get<mysql2.Connection>("db");
+    const db = Container.get<mysql2.PoolConnection>("db");
     const queryGetFieldsList = `
       SELECT * FROM Field`;
     //----------------------------
@@ -61,7 +61,7 @@ export default class fieldService {
     user_id: number,
     field_ids: string
   ): Promise<object> {
-    const db = Container.get<mysql2.Connection>("db");
+    const db = Container.get<mysql2.PoolConnection>("db");
     let userInfo = "newUser's field is inserted!";
     // 1. 기존에 있는 유저 필드정보를 지우고,
     const queryDeleteExistUserFields = `DELETE FROM UsersFields WHERE user_id = (?)`;

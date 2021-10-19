@@ -10,7 +10,7 @@ import QuestionService from "../services/question";
 @Service()
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.Connection>("db");
+  db = Container.get<mysql2.PoolConnection>("db");
   questionServiceInstance = Container.get(QuestionService);
 
   // K1 GET localhost:3001/api/keywords
@@ -95,12 +95,9 @@ export default class KeywordService {
     user_id: number,
     elements: string[]
   ): Promise<object> {
-    const db = Container.get<mysql2.Connection>("db");
     const parseObj = (o: any) => JSON.parse(JSON.stringify(o));
     try {
       let result = {} as any;
-
-      console.log("user_id", user_id);
 
       elements = elements.map((e) =>
         e
@@ -129,29 +126,25 @@ export default class KeywordService {
           console.log("에러가났어욤", error);
           throw error;
         });
-      // 2. 기존에 저장된 키워드를 지워버리기.. 이러면안될텐데!?
-      // const queryDeleteAllRows = `DELETE FROM UserKeyword WHERE user_id = ?`;
-      // const [queryDeleteAllRowsResult] = await db.query(queryDeleteAllRows, [
-      //   user_id,
-      // ]);
 
-      // 3. 엔진에서 추출된 키워드를 디비에 넣기
+      // 2. 엔진에서 추출된 키워드를 디비에 넣기
       const { keywordsData, indexesResult } = (await this.makeKeywordsDbFormat(
         ceResult,
         user_id
       )) as any;
-      if (keywordsData == undefined) {
+
+      if (keywordsData.length == 0) {
         // keywordsData가 없으면 넣을게 없으니까 바로 종료~
         result.userKeyword =
-          "Your CL has no keywords matching in our database!";
+          "Your Keywords already exist or nothing matching keywords in db";
         result.userIndexes =
-          "Your CL has no keywords matching in our database!";
+          "Your Keywords already exist or nothing matching keywords in db";
         return result;
       }
 
       // 3-1. UserKeyword 테이블에다가 keywordsData를 넣습니다.
       const queryUserkeyword = `INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready) VALUES ?`;
-      const [userKeywordResult] = (await db.query(queryUserkeyword, [
+      const [userKeywordResult] = (await this.db.query(queryUserkeyword, [
         keywordsData,
       ])) as any;
       result.userKeyword = userKeywordResult.info;
@@ -163,27 +156,28 @@ export default class KeywordService {
         user_keyword_id
       )) as any;
       const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index, length) VALUES ?`;
-      const [queryIndexesToFromCLResult] = (await db.query(
+      const [queryIndexesToFromCLResult] = (await this.db.query(
         queryIndexesToFromCL,
         [indexesData]
       )) as any;
       result.userIndexes = queryIndexesToFromCLResult.info;
 
-      // 3-3. UserKeyword 테이블에다가 인성키워드들을 넣습니다.
-      const queryPersonalityKeywords = `
-        INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
-        VALUES ?`;
-      const personalityKeywordsData = this.getPersonalityKeywordsData(user_id);
-      const [queryPersonalityKeywordsResult] = (await db.query(
-        queryPersonalityKeywords,
-        [personalityKeywordsData]
-      )) as any;
-      result.userPersonalityKeyword = queryPersonalityKeywordsResult.info;
-
       return result;
     } catch (error) {
       throw error;
     }
+  }
+
+  public async putPersonalityKeywords(user_id: number) {
+    const queryPersonalityKeywords = `
+        INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
+        VALUES ?`;
+    const personalityKeywordsData = this.getPersonalityKeywordsData(user_id);
+    const [queryPersonalityKeywordsResult] = (await this.db.query(
+      queryPersonalityKeywords,
+      [personalityKeywordsData]
+    )) as any;
+    return queryPersonalityKeywordsResult.message;
   }
 
   private getPersonalityKeywordsData(user_id: number) {
@@ -222,16 +216,38 @@ export default class KeywordService {
     return { indexesData };
   }
 
+  private isAlreadyExistKeyword(existIds: any[], compareId: number) {
+    for (let i = 0; i < existIds.length; i++) {
+      let existId = existIds[i].keyword_id;
+      if (compareId === existId) return 1;
+    }
+    return 0;
+  }
+
   private async makeKeywordsDbFormat(ceResult: any, user_id: number) {
     let keywordsData: any[] = [];
     let indexesResult: any[] = [];
+
+    const queryExistUserKeywordIds = `
+      SELECT keyword_id FROM UserKeyword WHERE user_id=?`;
+    const [existUserKeywordIds] = (await this.db.query(
+      queryExistUserKeywordIds,
+      [user_id]
+    )) as any;
+
+    console.log("existUserKeywordIds", existUserKeywordIds);
     ceResult.forEach((keywordsInCLE: any) => {
       let indexesInCLE: any[] = [];
-      keywordsInCLE.map((k: any) => {
+      keywordsInCLE.map((k: IKeyword) => {
         if (k.indices.length > 0) {
           indexesInCLE.push(k.indices);
         }
-        keywordsData.push([k.id, user_id, false, true, true]);
+        //check if a keyword already exist
+
+        const isExist = this.isAlreadyExistKeyword(existUserKeywordIds, k.id);
+        if (isExist == 0) {
+          keywordsData.push([k.id, user_id, false, true, true]);
+        }
       });
       indexesResult.push(indexesInCLE);
     });

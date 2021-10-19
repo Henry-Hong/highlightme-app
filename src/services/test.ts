@@ -9,7 +9,7 @@ export default class TestService {
   constructor(@Inject("logger") private logger: Logger) {}
 
   public async dbTest(): Promise<{ content: object }> {
-    const db = Container.get<mysql2.Connection>("db");
+    const db = Container.get<mysql2.PoolConnection>("db");
 
     const query = `SELECT * FROM BigField`;
     const [dbResult] = await db.query(query);
