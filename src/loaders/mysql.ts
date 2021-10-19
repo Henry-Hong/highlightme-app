@@ -1,8 +1,9 @@
 import config from "../config";
 import mysql2 from "mysql2/promise";
+import { connect } from "http2";
 
 export const load = async (): Promise<mysql2.Connection> => {
-  const db = await mysql2.createConnection({
+  const db = await mysql2.createPool({
     host: config.dbURL,
     port: 3306,
     user: config.dbUser,
@@ -10,8 +11,8 @@ export const load = async (): Promise<mysql2.Connection> => {
     database: config.dbName,
   });
 
-  await db.connect();
-  await db.query("use highlightme_aurora");
+  const connection = await db.getConnection();
+  connection.query("use highlightme_aurora");
 
-  return db;
+  return connection;
 };
