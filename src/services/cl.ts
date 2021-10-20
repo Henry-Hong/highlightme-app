@@ -109,31 +109,6 @@ export default class CLService {
     };
   }
 
-  private makeClesDbFormat(CLES: any, cl_id: any) {
-    let elements = [] as any;
-    let rows = [] as any;
-    let pCLES = JSON.parse(CLES);
-    pCLES.map(
-      (CLE: {
-        cl_element_id: string;
-        problem: any;
-        answer: any;
-        _public: any;
-      }) => {
-        let row = [];
-        row.push(parseInt(CLE.cl_element_id));
-        row.push(CLE.problem);
-        row.push(CLE.answer);
-        row.push(parseInt(CLE._public));
-        row.push(cl_id);
-        rows.push(row);
-
-        elements.push(CLE.answer);
-      }
-    );
-    return { clesData: rows, answerData: elements };
-  }
-
   // C2 GET localhost:3001/api/cls
   // 자기소개서항목 & 주고받기 정보 내놓으라할때
   public async getCLEsById(user_id: number): Promise<object> {
@@ -168,6 +143,44 @@ export default class CLService {
     } else {
       return { cl_id: cl_id, isNew: 0 };
     }
+  }
+
+  private async deleteAllCLERelated(
+    cl_element_id: number,
+    cl_id: number,
+    user_id: number
+  ) {
+    try {
+      await this.db.beginTransaction(); // START TRANSACTION
+
+      // 1. 키워드정보
+      // user_id, cl_element_id
+      const queryDeleteUserKeywords = `
+      DELETE 
+      FROM UserKeywords
+      JOIN 
+      WHERE cl_element_id=? AND user_id=?`;
+      const [resultDeleteUserKeywords] = await this.db.query(
+        queryDeleteUserKeywords,
+        [cl_element_id, user_id]
+      );
+
+      // 2. 질문정보
+      const queryDeleteUserQuestions = `
+      DELETE FROM UserQuestion WHERE user_id = ?`;
+      const [resultDeleteUserQuestions] = await this.db.query(
+        queryDeleteUserKeywords,
+        [cl_element_id, user_id]
+      );
+
+      await this.db.commit(); // COMMIT
+    } catch (err) {
+      await this.db.rollback(); // ROLLBACK
+    } finally {
+      await this.db.release(); // RELEASE
+    }
+
+    // 3. FromCL정보
   }
 
   // C3 DELETE localhost:3001/api/cls
@@ -215,3 +228,28 @@ export default class CLService {
     else return queryGetCLIdFromUserIdResult[0];
   }
 }
+
+// private makeClesDbFormat(CLES: any, cl_id: any) {
+//     let elements = [] as any;
+//     let rows = [] as any;
+//     let pCLES = JSON.parse(CLES);
+//     pCLES.map(
+//       (CLE: {
+//         cl_element_id: string;
+//         problem: any;
+//         answer: any;
+//         _public: any;
+//       }) => {
+//         let row = [];
+//         row.push(parseInt(CLE.cl_element_id));
+//         row.push(CLE.problem);
+//         row.push(CLE.answer);
+//         row.push(parseInt(CLE._public));
+//         row.push(cl_id);
+//         rows.push(row);
+
+//         elements.push(CLE.answer);
+//       }
+//     );
+//     return { clesData: rows, answerData: elements };
+//   }

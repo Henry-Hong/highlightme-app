@@ -127,6 +127,8 @@ export default class KeywordService {
           throw error;
         });
 
+      console.log("ceResult", ceResult);
+
       // 2. 엔진에서 추출된 키워드를 디비에 넣기
       const { keywordsData, indexesResult } = (await this.makeKeywordsDbFormat(
         ceResult,
@@ -143,24 +145,24 @@ export default class KeywordService {
       }
 
       // 3-1. UserKeyword 테이블에다가 keywordsData를 넣습니다.
-      const queryUserkeyword = `INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready) VALUES ?`;
+      const queryUserkeyword = `INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready, cl_element_id) VALUES ?`;
       const [userKeywordResult] = (await this.db.query(queryUserkeyword, [
         keywordsData,
       ])) as any;
       result.userKeyword = userKeywordResult.info;
 
       //3-2. FromCL 테이블에다가 indexesData를 넣습니다.
-      let user_keyword_id: number = userKeywordResult.insertId;
-      const { indexesData } = (await this.makeIndexesDbFormat(
-        indexesResult,
-        user_keyword_id
-      )) as any;
-      const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index, length) VALUES ?`;
-      const [queryIndexesToFromCLResult] = (await this.db.query(
-        queryIndexesToFromCL,
-        [indexesData]
-      )) as any;
-      result.userIndexes = queryIndexesToFromCLResult.info;
+      // let user_keyword_id: number = userKeywordResult.insertId;
+      // const { indexesData } = (await this.makeIndexesDbFormat(
+      //   indexesResult,
+      //   user_keyword_id
+      // )) as any;
+      // const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index, length) VALUES ?`;
+      // const [queryIndexesToFromCLResult] = (await this.db.query(
+      //   queryIndexesToFromCL,
+      //   [indexesData]
+      // )) as any;
+      // result.userIndexes = queryIndexesToFromCLResult.info;
 
       return result;
     } catch (error) {
@@ -216,10 +218,10 @@ export default class KeywordService {
     return { indexesData };
   }
 
-  private isAlreadyExistKeyword(existIds: any[], compareId: number) {
+  private isAlreadyExistKeyword(existIds: number[], compareId: number) {
+    // APP-7 existNewUserKeywordsIdsArr에서 존재하면 return 2
     for (let i = 0; i < existIds.length; i++) {
-      let existId = existIds[i].keyword_id;
-      if (compareId === existId) return 1;
+      if (compareId === existIds[i]) return 1;
     }
     return 0;
   }
@@ -228,28 +230,43 @@ export default class KeywordService {
     let keywordsData: any[] = [];
     let indexesResult: any[] = [];
 
-    const queryExistUserKeywordIds = `
+    const queryExistUserKeyword = `
       SELECT keyword_id FROM UserKeyword WHERE user_id=?`;
-    const [existUserKeywordIds] = (await this.db.query(
-      queryExistUserKeywordIds,
-      [user_id]
-    )) as any;
+    const [existUserKeyword] = (await this.db.query(queryExistUserKeyword, [
+      user_id,
+    ])) as any;
+    const existUserKeywordsIdsArr = existUserKeyword.map((e: any) => {
+      return e.keyword_id;
+    });
 
-    console.log("existUserKeywordIds", existUserKeywordIds);
+    let cl_element_id = 1;
+    // APP-7 const existNewUserKeywordsIdsArr = [] as any;
     ceResult.forEach((keywordsInCLE: any) => {
       let indexesInCLE: any[] = [];
       keywordsInCLE.map((k: IKeyword) => {
-        if (k.indices.length > 0) {
-          indexesInCLE.push(k.indices);
-        }
         //check if a keyword already exist
-
-        const isExist = this.isAlreadyExistKeyword(existUserKeywordIds, k.id);
+        const isExist = this.isAlreadyExistKeyword(
+          existUserKeywordsIdsArr,
+          k.id
+        );
         if (isExist == 0) {
-          keywordsData.push([k.id, user_id, false, true, true]);
+          // APP-7 인덱스 관련된건,, 일단 묻어두기로
+          // if (k.indices.length > 0) {
+          //   indexesInCLE.push(k.indices);
+          // }
+          keywordsData.push([k.id, user_id, false, true, true, cl_element_id]);
+          // APP-7 서로 다른 문항에 새로운 키워드가 등장했을때는 여전히 중복키워드가 발생함
+          // Arr에 새로운 키워드를 넣어주면
+          // existNewUserKeywordsIdsArr.push(k.id);
+        } else if (isExist == 1) {
+          // 이미 있는 경우
+          // do nothing
+        } else if (isExist == 2) {
+          // APP-7
         }
       });
       indexesResult.push(indexesInCLE);
+      cl_element_id++;
     });
 
     return { keywordsData: keywordsData, indexesResult: indexesResult };
