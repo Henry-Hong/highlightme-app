@@ -7,6 +7,7 @@ import express, {
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import passportConfig from "../services/auth";
+// import FileStore from "session-file-store"
 
 //login 관련 모듈 임포트
 // import passportConfig from "../config/passport"
@@ -14,6 +15,7 @@ import passport from "passport";
 import routes from "../routes";
 import config from "../config";
 import session from "express-session";
+const FileStore = require("session-file-store")(session);
 
 export default (app: express.Application) => {
   app.use(cookieParser());
@@ -39,6 +41,7 @@ export default (app: express.Application) => {
       secret: process.env.SESSION_SECRET as string,
       resave: false,
       saveUninitialized: true,
+      store: new FileStore(),
       // cookie: {
       // httpOnly: false,
       // secure: true,
