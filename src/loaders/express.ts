@@ -15,6 +15,8 @@ import routes from "../routes";
 import config from "../config";
 import session from "express-session";
 
+const FileStore = require("session-file-store")(session);
+
 export default (app: express.Application) => {
   app.use(cookieParser());
 
@@ -39,6 +41,7 @@ export default (app: express.Application) => {
       secret: process.env.SESSION_SECRET as string,
       resave: false,
       saveUninitialized: true,
+      store: new FileStore(),
       // cookie: {
       // httpOnly: false,
       // secure: true,
