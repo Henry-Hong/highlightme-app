@@ -123,11 +123,12 @@ export default class CLService {
   private async getOrCreateCLId(user_id: any) {
     //디비를 거쳐서 cl_id를 가져온다.
     const { cl_id } = (await this.getCLIdFromUserId(user_id)) as any;
-    const personalityKeywordsResult =
-      await this.keywordServiceInstance.putPersonalityKeywords(user_id);
 
     //빈객체이면 유저의 cl_id정보를 만든다.
     if (cl_id == -1) {
+      const personalityKeywordsResult =
+        await this.keywordServiceInstance.putPersonalityKeywords(user_id);
+
       const queryClInitialize = `
         INSERT INTO CL (user_id, title, company, tags, comment, view_num, user_question_num, created_at)
         VALUES (?, "init", "init", "init", "init", 0, 0, NOW())`;
