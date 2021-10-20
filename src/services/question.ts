@@ -48,8 +48,8 @@ export default class questionService {
       SELECT
       Q.question_id, Q.content, Q.type,
       UQ.user_question_id, UQ.answer,
-      IF(EXISTS (SELECT * FROM Likes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS likes,
-      IF(EXISTS (SELECT * FROM Dislikes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS dislike
+      IF(EXISTS (SELECT * FROM Likes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS liked,
+      IF(EXISTS (SELECT * FROM Dislikes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS disliked
       FROM Question Q
       INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
     const [questionInfoResult] = (await this.db.query(queryQuestionInfo, [
@@ -61,6 +61,12 @@ export default class questionService {
     // //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
 
     result.questions = questionInfoResult;
+    result.questions = result.questions.map((e: any) => ({
+      ...e,
+      liked: e.liked ? true : false,
+      disliked: e.disliked ? true : false,
+    }));
+
     return result;
   }
 

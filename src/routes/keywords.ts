@@ -19,7 +19,7 @@ export default (app: Router) => {
   // 한 유저의 키워드를 불러오는 apis
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug(`Calling GET '/api/keywords', req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/keywords'`);
 
     try {
       const { user_id } = (req.user as any) || { user_id: 7 };
