@@ -17,6 +17,8 @@ import config from "../config";
 import session from "express-session";
 const FileStore = require("session-file-store")(session);
 
+const FileStore = require("session-file-store")(session);
+
 export default (app: express.Application) => {
   app.use(cookieParser());
 
