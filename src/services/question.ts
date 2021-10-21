@@ -210,13 +210,14 @@ export default class questionService {
   ): Promise<object> {
     let result = {} as any;
 
-    //1. 질문에 답을 했다는거슨.. 어떤 키워드에 답을 하나라도 했다는것..
+    //1. 질문에 답했으면 해당키워드 업데이트하기
     const keywordServiceInstance = Container.get(KeywordService);
     const response = (await keywordServiceInstance.updateKeywordAnswered(
       user_keyword_id
     )) as any;
     result.isAnswerColUpdated = response.isUpdated;
 
+    //2. 질문에 대한 답변 DB에 넣기
     const queryAnswerToQuestion = `
       INSERT INTO UserQuestion (user_question_id, answer, created_at, modified_at)
       VALUES(?, ?, NOW(), NOW())
@@ -227,6 +228,8 @@ export default class questionService {
     )) as any;
     if (queryAnswerToQuestionResult.affectedRows) result.isAnswerSuccess = 1;
     else result.isAnswerSuccess = 0;
+
+    //3. 꼬리질문 생성하기
 
     return result;
   }

@@ -62,7 +62,7 @@ export default () => {
             const [createUserResult] = (await db.query(queryCreateUser, [
               email,
               tokenId,
-              "sampleNickName",
+              "",
               "2",
             ])) as any;
             if (user_id === undefined) user_id = createUserResult.insertId;
@@ -117,7 +117,7 @@ export default () => {
             const [createUserResult] = await db.query(queryCreateUser, [
               email,
               googleId,
-              "sampleNickName",
+              "",
               "2",
             ]);
             const createUserResultParse = parseObj(createUserResult);
