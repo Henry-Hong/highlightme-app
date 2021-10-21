@@ -117,7 +117,7 @@ export default class CLService {
     const queryGetCLEs = `
       SELECT * FROM CLElement WHERE cl_id = ?`;
     const [queryGetCLEsResult] = await this.db.query(queryGetCLEs, [cl_id]);
-    return { isNew: isNew, cl_id: cl_id, result: queryGetCLEsResult };
+    return { isNew: isNew, cl_id: cl_id, cles: queryGetCLEsResult };
   }
 
   private async getOrCreateCLId(user_id: any) {

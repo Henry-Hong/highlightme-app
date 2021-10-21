@@ -42,7 +42,7 @@ export default class KeywordService {
           answered: kw.answered,
         });
       }
-      let result = { result: keywords };
+      let result = { keywords: keywords };
       return result; //success
     } catch (error) {
       console.log(error);
