@@ -40,7 +40,7 @@ export default (app: express.Application) => {
     session({
       secret: process.env.SESSION_SECRET as string,
       resave: false,
-      saveUninitialized: true,
+      saveUninitialized: false,
       store: new FileStore(),
       // cookie: {
       // httpOnly: false,
