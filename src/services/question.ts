@@ -9,12 +9,12 @@ import KeywordService from "../services/keyword";
 import { ICL } from "../interfaces/ICL";
 // import fetch from "node-fetch";
 import { IKeyword } from "../interfaces/IKeyword";
+import { parseObject } from "../utils";
 
 @Service()
 export default class questionService {
   constructor(@Inject("logger") private logger: Logger) {}
   db = Container.get<mysql2.PoolConnection>("db");
-  parseObj = (e: any) => JSON.parse(JSON.stringify(e));
 
   // Q1 GET localhost:3001/api/questions
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
@@ -129,7 +129,7 @@ export default class questionService {
         question_id,
         user_id,
       ]);
-      const queryLikeUpResultParse = this.parseObj(queryLikeUpResult);
+      const queryLikeUpResultParse = parseObject(queryLikeUpResult);
       if (queryLikeUpResultParse.affectedRows === 1) result.upLike = true;
 
       // 그다음 싫어요를 down으로 바꾼다. 그냥 요청 2번날리기수법.
@@ -138,7 +138,7 @@ export default class questionService {
         question_id,
         user_id,
       ]);
-      const queryDislikeDownResultParse = this.parseObj(queryDislikeDownResult);
+      const queryDislikeDownResultParse = parseObject(queryDislikeDownResult);
       if (queryDislikeDownResultParse.affectedRows === 1)
         result.downDislike = true;
     } else if (isUp === 1) {
@@ -148,7 +148,7 @@ export default class questionService {
         question_id,
         user_id,
       ]);
-      const queryLikeDownResultParse = this.parseObj(queryLikeDownResult);
+      const queryLikeDownResultParse = parseObject(queryLikeDownResult);
       if (queryLikeDownResultParse.affectedRows === 1) result.deleted = true;
     }
 
@@ -178,7 +178,7 @@ export default class questionService {
         question_id,
         user_id,
       ]);
-      const queryDislikeUpResultParse = this.parseObj(queryDislikeUpResult);
+      const queryDislikeUpResultParse = parseObject(queryDislikeUpResult);
       if (queryDislikeUpResultParse.affectedRows === 1) result.upDislike = true;
       else result.message = "이런일은없어야하는데..";
 
@@ -188,7 +188,7 @@ export default class questionService {
         question_id,
         user_id,
       ]);
-      const queryLikeDownResultParse = this.parseObj(queryLikeDownResult);
+      const queryLikeDownResultParse = parseObject(queryLikeDownResult);
       if (queryLikeDownResultParse.affectedRows === 1) result.downLike = true;
     } else if (isUp === 1) {
       // case2: 좋down, 싫up -> 좋down 싫down : 싫어요 비활성화하고싶다.
@@ -197,7 +197,7 @@ export default class questionService {
         question_id,
         user_id,
       ]);
-      const queryDislikeDownResultParse = this.parseObj(queryDislikeDownResult);
+      const queryDislikeDownResultParse = parseObject(queryDislikeDownResult);
       if (queryDislikeDownResultParse.affectedRows === 1) result.deleted = true;
     }
     return result;

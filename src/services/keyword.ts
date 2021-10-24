@@ -6,6 +6,7 @@ import { IKeyword } from "../interfaces/IKeyword";
 import axios from "axios";
 import LoggerInstance from "../loaders/logger";
 import QuestionService from "../services/question";
+import { parseObject } from "../utils";
 
 @Service()
 export default class KeywordService {
@@ -95,7 +96,6 @@ export default class KeywordService {
     user_id: number,
     elements: string[]
   ): Promise<object> {
-    const parseObj = (o: any) => JSON.parse(JSON.stringify(o));
     try {
       let result = {} as any;
 
@@ -120,7 +120,7 @@ export default class KeywordService {
           elements: JSON.stringify(elements),
         })
         .then(function (response: any) {
-          ceResult = parseObj(response.data);
+          ceResult = parseObject(response.data);
         })
         .catch(function (error) {
           console.log("에러가났어욤", error);

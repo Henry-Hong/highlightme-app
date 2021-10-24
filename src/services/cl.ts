@@ -9,12 +9,12 @@ import QuestionService from "../services/question";
 import { ICL } from "../interfaces/ICL";
 import { ICLElementNode } from "../interfaces/ICLElementNode";
 import { addAbortSignal } from "stream";
+import { parseObject } from "../utils";
 
 @Service()
 export default class CLService {
   //공용 함수들!
   constructor(@Inject("logger") private logger: Logger) {}
-  parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   db = Container.get<mysql2.PoolConnection>("db");
   keywordServiceInstance = Container.get(KeywordService);
   questionServiceInstance = Container.get(QuestionService);
@@ -201,7 +201,7 @@ export default class CLService {
       queryDeleteCLElement,
       [cl_element_id, cl_id]
     );
-    const queryDeleteCLElementResultParse = this.parseObj(
+    const queryDeleteCLElementResultParse = parseObject(
       queryDeleteCLElementResult
     );
     if (queryDeleteCLElementResultParse.affectedRows === 1)
