@@ -99,6 +99,7 @@ export default (app: Router) => {
         const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
         const questionServiceInstance = Container.get(QuestionService);
         const result = await questionServiceInstance.answerToQuestion(
+          parseInt(user_id),
           parseInt(user_question_id),
           parseInt(user_keyword_id),
           answer
