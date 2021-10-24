@@ -7,6 +7,8 @@ import axios from "axios";
 import KeywordService from "../services/keyword";
 
 import { ICL } from "../interfaces/ICL";
+// import fetch from "node-fetch";
+import { IKeyword } from "../interfaces/IKeyword";
 
 @Service()
 export default class questionService {
@@ -204,6 +206,7 @@ export default class questionService {
   // Q5 POST localhost:3001/api/questions/answer
   // 특정 질문에 대해 답하기!
   public async answerToQuestion(
+    user_id: number,
     user_question_id: number,
     user_keyword_id: number,
     answer: string
@@ -230,6 +233,41 @@ export default class questionService {
     else result.isAnswerSuccess = 0;
 
     //3. 꼬리질문 생성하기
+    let tailQuestion = await this.getKeywordsFromCE(user_id, answer);
+    if (tailQuestion && tailQuestion !== "None") {
+      result.tailQuestion = tailQuestion;
+    }
+
+    return result;
+  }
+
+  private async getKeywordsFromCE(userId: number, sentence: string) {
+    //1. 답변을 코어엔진에게 키워드 추출 요청
+    let res = await axios.post(`${config.ceServerURL}/ce/keywords`, {
+      elements: JSON.stringify([sentence]),
+    });
+
+    let keywords: IKeyword[][] = JSON.parse(JSON.stringify(res.data));
+    let keywordIds = keywords[0].map((k) => k.id); //임시로 첫번째 키워드만 가져옴
+
+    let result = "None";
+
+    // 2. UserKeyword 테이블에 방금 가져온 키워드와 겹치는 것을 가져옵니다.
+    if (keywordIds.length > 0) {
+      const queryQuestion =
+        "SELECT Q.question_id, Q.content, Q.type FROM Question AS Q WHERE question_id IN (" +
+        "SELECT question_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (" +
+        "SELECT question_id FROM UserQuestion WHERE user_keyword_id IN (" +
+        "SELECT user_keyword_id FROM UserKeyword WHERE user_id = ?)))";
+      const [questionResult] = (await this.db.query(queryQuestion, [
+        keywordIds,
+        userId,
+      ])) as any;
+
+      if (questionResult && questionResult.length > 0) {
+        result = questionResult[0];
+      }
+    }
 
     return result;
   }

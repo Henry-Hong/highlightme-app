@@ -8,3 +8,6 @@ logs/
 
 # Build result
 build/
+
+# Session
+sessions/
