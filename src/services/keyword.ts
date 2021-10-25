@@ -69,9 +69,15 @@ export default class KeywordService {
     }
   }
 
-  // K3 POST localhost:3001/api/keywords/answered ㄱ-ㄲ
-  // 한 키워드에 답변이 달렸음을 알리는 api
-  public async updateKeywordAnswered(user_keyword_id: number): Promise<object> {
+  /**
+   * K3 POST /keywords/answered
+   * 한 키워드에 답변이 달렸음을 알리는 API
+   * @param {number} user_keyword_id
+   * @returns {Boolean}
+   */
+  public async updateKeywordAnswered(
+    user_keyword_id: number
+  ): Promise<Boolean> {
     try {
       const queryKeywordAnswer = `
         UPDATE UserKeyword SET answered = 2 WHERE user_keyword_id = ? AND answered = 1`;
@@ -81,12 +87,10 @@ export default class KeywordService {
         [user_keyword_id]
       )) as any;
 
-      let result = { isUpdated: queryKeywordAnswerResult.affectedRows };
-
-      return result;
+      return queryKeywordAnswerResult.affectedRows > 0;
     } catch (error) {
       console.log(error);
-      return { result: "error", message: error };
+      return false;
     }
   }
 
