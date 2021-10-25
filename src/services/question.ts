@@ -39,6 +39,7 @@ export default class questionService {
         user_keyword_id
       )) as any;
       const userQuestionResult = await this.putUserQuestionsAfterCE(
+        user_id,
         user_keyword_id,
         keyword_id
       );
@@ -275,6 +276,7 @@ export default class questionService {
   // 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
   // 질문리스트를 요청하면 Q1에서 호출된다!
   private async putUserQuestionsAfterCE(
+    user_id: number,
     user_keyword_id: number,
     keyword_id: number
   ) {
@@ -296,11 +298,11 @@ export default class questionService {
 
     // 2. UserQuestion 테이블에 question_id를 바탕으로, user_keyword_id를 기본으로 하여 추가한다
     const queryMakeUserQuestions = `
-      INSERT INTO UserQuestion (user_keyword_id, question_id)
+      INSERT INTO UserQuestion (user_id, question_id)
       VALUES ?`;
     const { userQuestionsData } = await this.makeUserQuestionsDbFormat(
       queryKeywordQuestionPairsResult,
-      user_keyword_id
+      user_id
     );
     const [queryMakeUserQuestionsResult] = (await this.db.query(
       queryMakeUserQuestions,
@@ -312,11 +314,11 @@ export default class questionService {
 
   private async makeUserQuestionsDbFormat(
     queryKeywordQuestionPairsResult: any,
-    user_keyword_id: number
+    user_id: number,
   ) {
     const rows = [] as any;
     queryKeywordQuestionPairsResult.map((row: any) =>
-      rows.push([user_keyword_id, row.question_id])
+      rows.push([user_id, row.question_id])
     );
     return { userQuestionsData: rows };
   }
