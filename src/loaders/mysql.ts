@@ -2,8 +2,8 @@ import config from "../config";
 import mysql2 from "mysql2/promise";
 import { connect } from "http2";
 
-export const load = async (): Promise<mysql2.Pool> => {
-  const db = await mysql2.createPool({
+export function getPool(): mysql2.Pool {
+  const pool = mysql2.createPool({
     host: config.dbURL,
     port: 3306,
     user: config.dbUser,
@@ -11,7 +11,7 @@ export const load = async (): Promise<mysql2.Pool> => {
     database: config.dbName,
   });
 
-  return db;
+  return pool;
 
 
   // const connection = await db.getConnection();
