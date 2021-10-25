@@ -11,7 +11,7 @@ import { parseObject } from "../utils";
 @Service()
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.Pool>("db");
+  pool = Container.get<mysql2.Pool>("pool");
   questionServiceInstance = Container.get(QuestionService);
 
   // K1 GET localhost:3001/api/keywords
@@ -24,7 +24,7 @@ export default class KeywordService {
         UK.user_keyword_id, UK.answered
         FROM Keyword K
         INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? AND is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
-      const [queryUserKeywordsResult] = (await this.db.query(
+      const [queryUserKeywordsResult] = (await this.pool.query(
         queryUserKeywords,
         [user_id]
       )) as any;
@@ -57,7 +57,7 @@ export default class KeywordService {
     try {
       const queryKeywordRead = `
         UPDATE UserKeyword SET answered = 1 WHERE user_keyword_id = ? AND answered = 0`;
-      const [queryKeywordReadResult] = (await this.db.query(queryKeywordRead, [
+      const [queryKeywordReadResult] = (await this.pool.query(queryKeywordRead, [
         user_keyword_id,
       ])) as any;
       let result = { isUpdated: queryKeywordReadResult.affectedRows };
@@ -76,7 +76,7 @@ export default class KeywordService {
       const queryKeywordAnswer = `
         UPDATE UserKeyword SET answered = 2 WHERE user_keyword_id = ? AND answered = 1`;
       // answered = 0 인경우, 업데이트가 안될 수 있기에 조심! 항상 K3로 인해 answred = 1 로 바뀌고나서 실행된다는 시나리오!!
-      const [queryKeywordAnswerResult] = (await this.db.query(
+      const [queryKeywordAnswerResult] = (await this.pool.query(
         queryKeywordAnswer,
         [user_keyword_id]
       )) as any;
@@ -146,7 +146,7 @@ export default class KeywordService {
 
       // 3-1. UserKeyword 테이블에다가 keywordsData를 넣습니다.
       const queryUserkeyword = `INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready, cl_element_id) VALUES ?`;
-      const [userKeywordResult] = (await this.db.query(queryUserkeyword, [
+      const [userKeywordResult] = (await this.pool.query(queryUserkeyword, [
         keywordsData,
       ])) as any;
       result.userKeyword = userKeywordResult.info;
@@ -158,7 +158,7 @@ export default class KeywordService {
       //   user_keyword_id
       // )) as any;
       // const queryIndexesToFromCL = `INSERT INTO FromCL(user_keyword_id, cl_element_id, cl_index, length) VALUES ?`;
-      // const [queryIndexesToFromCLResult] = (await this.db.query(
+      // const [queryIndexesToFromCLResult] = (await this.pool.query(
       //   queryIndexesToFromCL,
       //   [indexesData]
       // )) as any;
@@ -175,7 +175,7 @@ export default class KeywordService {
         INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
         VALUES ?`;
     const personalityKeywordsData = this.getPersonalityKeywordsData(user_id);
-    const [queryPersonalityKeywordsResult] = (await this.db.query(
+    const [queryPersonalityKeywordsResult] = (await this.pool.query(
       queryPersonalityKeywords,
       [personalityKeywordsData]
     )) as any;
@@ -232,7 +232,7 @@ export default class KeywordService {
 
     const queryExistUserKeyword = `
       SELECT keyword_id FROM UserKeyword WHERE user_id=?`;
-    const [existUserKeyword] = (await this.db.query(queryExistUserKeyword, [
+    const [existUserKeyword] = (await this.pool.query(queryExistUserKeyword, [
       user_id,
     ])) as any;
     const existUserKeywordsIdsArr = existUserKeyword.map((e: any) => {
