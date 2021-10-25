@@ -15,7 +15,7 @@ export default class ScrapService {
   //공용 함수들!
   constructor(@Inject("logger") private logger: Logger) {}
   parseObj = (o: any) => JSON.parse(JSON.stringify(o));
-  db = Container.get<mysql2.PoolConnection>("db");
+  db = Container.get<mysql2.Pool>("db");
   // keywordServiceInstance = Container.get(KeywordService);
   // questionServiceInstance = Container.get(QuestionService);
 
