@@ -13,7 +13,7 @@ import { IKeyword } from "../interfaces/IKeyword";
 @Service()
 export default class questionService {
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.PoolConnection>("db");
+  db = Container.get<mysql2.Pool>("db");
   parseObj = (e: any) => JSON.parse(JSON.stringify(e));
 
   // Q1 GET localhost:3001/api/questions

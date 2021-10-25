@@ -38,7 +38,7 @@ export default () => {
       },
       async (accessToken, refreshToken, profile, done) => {
         console.log("profile", profile);
-        const db = Container.get<mysql2.PoolConnection>("db");
+        const db = Container.get<mysql2.Pool>("db");
         const {
           id: tokenId,
           emails: [{ value: email }],
@@ -100,7 +100,7 @@ export default () => {
         session: true,
       },
       async (email, googleId, done): Promise<void> => {
-        const db = Container.get<mysql2.PoolConnection>("db");
+        const db = Container.get<mysql2.Pool>("db");
         const provider = "google-local"; //프론트에서 구글, 백엔드에서 로컬
         try {
           const queryUserExist = "SELECT * FROM User WHERE email=(?)";

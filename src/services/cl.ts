@@ -9,13 +9,14 @@ import QuestionService from "../services/question";
 import { ICL } from "../interfaces/ICL";
 import { ICLElementNode } from "../interfaces/ICLElementNode";
 import { addAbortSignal } from "stream";
+import Connection from "mysql/lib/Connection";
 
 @Service()
 export default class CLService {
   //공용 함수들!
   constructor(@Inject("logger") private logger: Logger) {}
   parseObj = (o: any) => JSON.parse(JSON.stringify(o));
-  db = Container.get<mysql2.PoolConnection>("db");
+  db = Container.get<mysql2.Pool>("db");
   keywordServiceInstance = Container.get(KeywordService);
   questionServiceInstance = Container.get(QuestionService);
 
@@ -39,14 +40,14 @@ export default class CLService {
     // CLES 파싱
     let CLElements = JSON.parse(CLES);
     let answerDatas: any[] = [];
+    const conenction = await this.db.getConnection();
 
     try {
-      await this.db.beginTransaction(); // START TRANSACTION
-
+      await conenction.beginTransaction(); // START TRANSACTION
       CLElements.map(async (cleFromFront: ICLElementNode) => {
         const queryExistCLE = `
         SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
-        const [cleFromDB] = (await this.db.query(queryExistCLE, [
+        const [cleFromDB] = (await conenction.query(queryExistCLE, [
           parseInt(cleFromFront.cl_element_id),
           cl_id,
         ])) as any;
@@ -59,7 +60,7 @@ export default class CLService {
             // 업데이트 먼저 한다.
             const queryCLEUpdate = `
               UPDATE CLElement E SET E.problem=?, E.answer=?, E.modified_at=NOW() WHERE E.cl_element_id=? AND E.cl_id=?`;
-            const queryResult = (await this.db.query(queryCLEUpdate, [
+            const queryResult = (await conenction.query(queryCLEUpdate, [
               cleFromFront.problem,
               cleFromFront.answer,
               cleFromFront.cl_element_id,
@@ -80,7 +81,7 @@ export default class CLService {
           const queryCLEInsert = `
             INSERT INTO CLElement (cl_element_id, problem, answer, cl_id, public)
             VALUES (?,?,?,?,1)`;
-          const queryResult = (await this.db.query(queryCLEInsert, [
+          const queryResult = (await conenction.query(queryCLEInsert, [
             parseInt(cleFromFront.cl_element_id),
             cleFromFront.problem,
             cleFromFront.answer,
@@ -89,10 +90,10 @@ export default class CLService {
         }
       });
 
-      await this.db.commit(); // COMMIT
+      await conenction.commit(); // COMMIT
     } catch (err) {
       console.log("rollback");
-      await this.db.rollback(); // ROLLBACK
+      await conenction.rollback(); // ROLLBACK
     } finally {
       // 키워드 분석 새롭게 한다.
       if (answerDatas.length > 0) {
@@ -102,7 +103,7 @@ export default class CLService {
             answerDatas
           )) as any;
       }
-      await this.db.release();
+      await conenction.release();
     }
     return {
       result: 1,
@@ -151,8 +152,9 @@ export default class CLService {
     cl_id: number,
     user_id: number
   ) {
+    const connection = await this.db.getConnection();
     try {
-      await this.db.beginTransaction(); // START TRANSACTION
+      await connection.beginTransaction(); // START TRANSACTION
 
       // 1. 키워드정보
       // user_id, cl_element_id
@@ -161,7 +163,7 @@ export default class CLService {
       FROM UserKeywords
       JOIN 
       WHERE cl_element_id=? AND user_id=?`;
-      const [resultDeleteUserKeywords] = await this.db.query(
+      const [resultDeleteUserKeywords] = await connection.query(
         queryDeleteUserKeywords,
         [cl_element_id, user_id]
       );
@@ -169,16 +171,16 @@ export default class CLService {
       // 2. 질문정보
       const queryDeleteUserQuestions = `
       DELETE FROM UserQuestion WHERE user_id = ?`;
-      const [resultDeleteUserQuestions] = await this.db.query(
+      const [resultDeleteUserQuestions] = await connection.query(
         queryDeleteUserKeywords,
         [cl_element_id, user_id]
       );
 
-      await this.db.commit(); // COMMIT
+      await connection.commit(); // COMMIT
     } catch (err) {
-      await this.db.rollback(); // ROLLBACK
+      await connection.rollback(); // ROLLBACK
     } finally {
-      await this.db.release(); // RELEASE
+      await connection.release(); // RELEASE
     }
 
     // 3. FromCL정보
