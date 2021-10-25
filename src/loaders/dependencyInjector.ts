@@ -4,10 +4,10 @@ import mysql2 from "mysql2/promise";
 import config from "../config";
 
 export default ({
-  db,
+  pool,
   models,
 }: {
-  db: mysql2.Pool;
+  pool: mysql2.Pool;
   models: { name: string; model: any }[];
 }) => {
   try {
@@ -15,9 +15,9 @@ export default ({
       Container.set(m.name, m.model);
     });
 
-    Container.set("db", db);
+    Container.set("pool", pool);
     Container.set("logger", LoggerInstance);
-    LoggerInstance.info("🔥 logger and db injected into container!");
+    LoggerInstance.info("🔥 logger and pool injected into container!");
   } catch (e) {
     LoggerInstance.error("🔥 Error on dependency injector loader: %o", e);
     throw e;

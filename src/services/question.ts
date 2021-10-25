@@ -15,7 +15,7 @@ import { getRandomInt, parseObject } from "../utils/index";
 @Service()
 export default class questionService {
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.Pool>("db");
+  pool = Container.get<mysql2.Pool>("pool");
 
   // Q1 GET localhost:3001/api/questions
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
@@ -40,6 +40,7 @@ export default class questionService {
         user_keyword_id
       )) as any;
       const userQuestionResult = await this.putUserQuestionsAfterCE(
+        user_id,
         user_keyword_id,
         keyword_id
       );
@@ -55,7 +56,7 @@ export default class questionService {
       IF(EXISTS (SELECT * FROM Dislikes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS disliked
       FROM Question Q
       INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
-    const [questionInfoResult] = (await this.db.query(queryQuestionInfo, [
+    const [questionInfoResult] = (await this.pool.query(queryQuestionInfo, [
       user_id,
       user_id,
       user_keyword_id,
@@ -78,7 +79,7 @@ export default class questionService {
   ): Promise<object> {
     const query = `
       SELECT keyword_id FROM UserKeyword WHERE user_keyword_id = ? LIMIT 1`;
-    const [result] = (await this.db.query(query, [user_keyword_id])) as any;
+    const [result] = (await this.pool.query(query, [user_keyword_id])) as any;
 
     return result[0];
   }
@@ -86,7 +87,7 @@ export default class questionService {
   private async isQuestionDislikeUp(question_id: number, user_id: number) {
     const queryIsUp = `
       SELECT * FROM Dislikes WHERE question_id = ? AND user_id = ?`;
-    const [queryIsUpResult] = (await this.db.query(queryIsUp, [
+    const [queryIsUpResult] = (await this.pool.query(queryIsUp, [
       question_id,
       user_id,
     ])) as any;
@@ -97,7 +98,7 @@ export default class questionService {
   private async isQuestionLikeUp(question_id: number, user_id: number) {
     const queryIsUp = `
       SELECT * FROM Likes WHERE question_id = ? AND user_id = ?`;
-    const [queryIsUpResult] = (await this.db.query(queryIsUp, [
+    const [queryIsUpResult] = (await this.pool.query(queryIsUp, [
       question_id,
       user_id,
     ])) as any;
@@ -126,7 +127,7 @@ export default class questionService {
       // 일단 좋아요를 up으로 바꾼다.
       const queryLikeUp = `
         INSERT IGNORE INTO Likes (question_id, user_id) VALUES (?, ?)`;
-      const [queryLikeUpResult] = await this.db.query(queryLikeUp, [
+      const [queryLikeUpResult] = await this.pool.query(queryLikeUp, [
         question_id,
         user_id,
       ]);
@@ -135,7 +136,7 @@ export default class questionService {
 
       // 그다음 싫어요를 down으로 바꾼다. 그냥 요청 2번날리기수법.
       const queryDislikeDown = `DELETE FROM Dislikes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryDislikeDownResult] = await this.db.query(queryDislikeDown, [
+      const [queryDislikeDownResult] = await this.pool.query(queryDislikeDown, [
         question_id,
         user_id,
       ]);
@@ -145,7 +146,7 @@ export default class questionService {
     } else if (isUp === 1) {
       // case2: 좋up, 싫down -> 좋down, 싫down : 좋아요 비활성화하고싶다.
       const queryLikeDown = `DELETE FROM Likes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryLikeDownResult] = await this.db.query(queryLikeDown, [
+      const [queryLikeDownResult] = await this.pool.query(queryLikeDown, [
         question_id,
         user_id,
       ]);
@@ -175,7 +176,7 @@ export default class questionService {
       // case1: 좋down, 싫down OR 좋up, 싫down
       const queryDislikeUp = `
         INSERT IGNORE INTO Dislikes (question_id, user_id) VALUES (?, ?)`;
-      const [queryDislikeUpResult] = await this.db.query(queryDislikeUp, [
+      const [queryDislikeUpResult] = await this.pool.query(queryDislikeUp, [
         question_id,
         user_id,
       ]);
@@ -185,7 +186,7 @@ export default class questionService {
 
       // 그다음 좋아요를 down으로 바꾼다. 그냥 요청 2번날리기수법.
       const queryLikeDown = `DELETE FROM Likes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryLikeDownResult] = await this.db.query(queryLikeDown, [
+      const [queryLikeDownResult] = await this.pool.query(queryLikeDown, [
         question_id,
         user_id,
       ]);
@@ -194,7 +195,7 @@ export default class questionService {
     } else if (isUp === 1) {
       // case2: 좋down, 싫up -> 좋down 싫down : 싫어요 비활성화하고싶다.
       const queryDislikeDown = `DELETE FROM Dislikes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryDislikeDownResult] = await this.db.query(queryDislikeDown, [
+      const [queryDislikeDownResult] = await this.pool.query(queryDislikeDown, [
         question_id,
         user_id,
       ]);
@@ -222,7 +223,7 @@ export default class questionService {
     const querySelectUserKeywordId = `
       SELECT user_keyword_id AS userKeywordId FROM UserKeyword
       WHERE user_id = ? AND keyword_id = ? LIMIT 1`;
-    const [selectUserKeywordIdResult] = (await this.db.query(
+    const [selectUserKeywordIdResult] = (await this.pool.query(
       querySelectUserKeywordId,
       [userId, keywordId]
     )) as any;
@@ -237,7 +238,7 @@ export default class questionService {
     //2. 질문에 대한 답변 DB에 넣기
     const queryAnswerToQuestion = `
       UPDATE UserQuestion SET answer = ?, modified_at = NOW() WHERE user_id = ? AND question_id = ?`;
-    const [queryAnswerToQuestionResult] = (await this.db.query(
+    const [queryAnswerToQuestionResult] = (await this.pool.query(
       queryAnswerToQuestion,
       [answer, userId, questionId]
     )) as any;
@@ -293,7 +294,7 @@ export default class questionService {
       SELECT Q.question_id questionId, T.keyword_id keywordId, Q.content FROM Question Q INNER JOIN (
         SELECT question_id, keyword_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (
         SELECT question_id FROM UserQuestion WHERE user_id = ?)) T ON Q.question_id = T.question_id`;
-    const [questionResult] = (await this.db.query(queryQuestion, [
+    const [questionResult] = (await this.pool.query(queryQuestion, [
       keywordIds,
       userId,
     ])) as any;
@@ -310,13 +311,14 @@ export default class questionService {
   // 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
   // 질문리스트를 요청하면 Q1에서 호출된다!
   private async putUserQuestionsAfterCE(
+    user_id: number,
     user_keyword_id: number,
     keyword_id: number
   ) {
     //0. IF EXIST 구문을 이용해서 만약에 user_keyword_id에 대한 질문이 이미 존재하면 그만 하고 나가기!
     const queryExistCheck = `
       SELECT * FROM UserQuestion WHERE user_keyword_id = ? LIMIT 1`;
-    const [queryExistCheckResult] = (await this.db.query(queryExistCheck, [
+    const [queryExistCheckResult] = (await this.pool.query(queryExistCheck, [
       user_keyword_id,
     ])) as any;
     if (queryExistCheckResult.length !== 0) return 0;
@@ -324,20 +326,20 @@ export default class questionService {
     // 1. KeywordsQuestions 테이블에서 keyword_id를 통해서 question_id 를 뽑아낸다.
     const queryKeywordQuestionPairs = `
       SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`;
-    const [queryKeywordQuestionPairsResult] = (await this.db.query(
+    const [queryKeywordQuestionPairsResult] = (await this.pool.query(
       queryKeywordQuestionPairs,
       [keyword_id]
     )) as any;
 
     // 2. UserQuestion 테이블에 question_id를 바탕으로, user_keyword_id를 기본으로 하여 추가한다
     const queryMakeUserQuestions = `
-      INSERT INTO UserQuestion (user_keyword_id, question_id)
+      INSERT INTO UserQuestion (user_id, question_id)
       VALUES ?`;
     const { userQuestionsData } = await this.makeUserQuestionsDbFormat(
       queryKeywordQuestionPairsResult,
-      user_keyword_id
+      user_id
     );
-    const [queryMakeUserQuestionsResult] = (await this.db.query(
+    const [queryMakeUserQuestionsResult] = (await this.pool.query(
       queryMakeUserQuestions,
       [userQuestionsData]
     )) as any;
@@ -347,11 +349,11 @@ export default class questionService {
 
   private async makeUserQuestionsDbFormat(
     queryKeywordQuestionPairsResult: any,
-    user_keyword_id: number
+    user_id: number
   ) {
     const rows = [] as any;
     queryKeywordQuestionPairsResult.map((row: any) =>
-      rows.push([user_keyword_id, row.question_id])
+      rows.push([user_id, row.question_id])
     );
     return { userQuestionsData: rows };
   }
