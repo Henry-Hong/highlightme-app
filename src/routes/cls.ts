@@ -23,7 +23,6 @@ export default (app: Router) => {
     logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
 
     try {
-      console.log(req.user);
       const { user_id } = (req.user as any) || { user_id: 7 };
       const { CLES, cl_id, title, company, tags, comments } = req.body;
       const clServiceInstance = Container.get(CLService);
