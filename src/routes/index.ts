@@ -7,7 +7,6 @@ import cls from "./cls";
 import keywords from "./keywords";
 import questions from "./questions";
 import fields from "./fields";
-import scraps from "./scraps";
 
 export default () => {
   const app = Router();
@@ -18,7 +17,6 @@ export default () => {
   cls(app);
   questions(app);
   fields(app);
-  scraps(app);
 
   return app;
 };
