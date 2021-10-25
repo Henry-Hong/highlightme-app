@@ -49,9 +49,11 @@ export default class ScrapService {
   //특정질문 스크랩하기
   public async getScrapList(user_id: number): Promise<object> {
     let result = {} as any;
-    console.log("hi?");
+    const conenction = await this.db.getConnection();
+
+
     try {
-      await this.db.beginTransaction(); // START TRANSACTION
+      await conenction.beginTransaction();
 
       const queryScrapFromUQ = `
         SELECT S.*, UQ.answer FROM Scrap S
@@ -67,12 +69,12 @@ export default class ScrapService {
         user_id,
       ])) as any;
 
-      await this.db.commit(); // COMMIT
+      await conenction.commit(); // COMMIT
       result.scrap_items = resultScrapFromUQ;
     } catch (err) {
-      await this.db.rollback(); // ROLLBACK
+      await conenction.rollback(); // ROLLBACK
     } finally {
-      await this.db.release();
+      await conenction.release();
     }
 
     return result;

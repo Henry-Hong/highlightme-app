@@ -44,6 +44,7 @@ export default class CLService {
 
     try {
       await conenction.beginTransaction(); // START TRANSACTION
+      
       CLElements.map(async (cleFromFront: ICLElementNode) => {
         const queryExistCLE = `
         SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
