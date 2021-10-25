@@ -9,7 +9,7 @@ import KeywordService from "../services/keyword";
 import { ICL } from "../interfaces/ICL";
 // import fetch from "node-fetch";
 import { IKeyword } from "../interfaces/IKeyword";
-import { parseObject } from "../utils";
+import { getRandomInt, parseObject } from "../utils/index";
 
 @Service()
 export default class questionService {
@@ -247,13 +247,14 @@ export default class questionService {
       elements: JSON.stringify([sentence]),
     });
 
-    let keywords: IKeyword[][] = JSON.parse(JSON.stringify(res.data));
-    let keywordIds = keywords[0].map((k) => k.id); //임시로 첫번째 키워드만 가져옴
+    let keywords: IKeyword[][] = parseObject(res.data);
+    let keywordIds = keywords[0].map((k) => k.id); //cles 요청이었기 때문에 첫번째 항목만 담겨서 올것임
 
     let result = "None";
 
     // 2. UserKeyword 테이블에 방금 가져온 키워드와 겹치는 것을 가져옵니다.
     if (keywordIds.length > 0) {
+      //user_question_id, user_keyword_id
       const queryQuestion =
         "SELECT Q.question_id, Q.content, Q.type FROM Question AS Q WHERE question_id IN (" +
         "SELECT question_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (" +
@@ -265,7 +266,7 @@ export default class questionService {
       ])) as any;
 
       if (questionResult && questionResult.length > 0) {
-        result = questionResult[0];
+        result = questionResult[getRandomInt(0, questionResult.length)];
       }
     }
 
