@@ -87,7 +87,8 @@ export default class KeywordService {
         [user_keyword_id]
       )) as any;
 
-      return queryKeywordAnswerResult.affectedRows > 0;
+      // return queryKeywordAnswerResult.affectedRows > 0;
+      return true;
     } catch (error) {
       console.log(error);
       return false;

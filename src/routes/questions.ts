@@ -95,16 +95,21 @@ export default (app: Router) => {
         req.body
       );
       try {
-        const { user_question_id, user_keyword_id, answer } = req.body;
-        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const { user_id: userId } = (req.user as any) || { user_id: 7 }; //TODO as any로 하지말고, Interface를 추가
+        const questionId: number = parseInt(req.body.questionId);
+        const keywordId: number = parseInt(req.body.keywordId);
+        const answer: string = req.body.answer;
+
         const questionServiceInstance = Container.get(QuestionService);
-        const result = await questionServiceInstance.answerToQuestion(
-          parseInt(user_id),
-          parseInt(user_question_id),
-          parseInt(user_keyword_id),
-          answer
-        );
-        return res.status(200).json(result);
+        const [statusCode, result] =
+          await questionServiceInstance.answerToQuestion(
+            userId,
+            questionId,
+            keywordId,
+            answer
+          );
+
+        return res.status(statusCode).json(result);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);

@@ -7,6 +7,7 @@ import axios from "axios";
 import KeywordService from "../services/keyword";
 
 import { ICL } from "../interfaces/ICL";
+import { IQuestion } from "../interfaces/IQuestion";
 // import fetch from "node-fetch";
 import { IKeyword } from "../interfaces/IKeyword";
 import { getRandomInt, parseObject } from "../utils/index";
@@ -203,74 +204,107 @@ export default class questionService {
     return result;
   }
 
-  // Q5 POST localhost:3001/api/questions/answer
-  // 특정 질문에 대해 답하기!
+  /**
+   * Q5 POST localhost:3001/api/questions/answer
+   * 특정 질문에 대해 답하기
+   * @param {number} userId
+   * @param {number} questionId
+   * @param {string} answer
+   * @returns Promise<[statusCode: number, result?: IQuestion]>
+   */
   public async answerToQuestion(
-    user_id: number,
-    user_question_id: number,
-    user_keyword_id: number,
+    userId: number,
+    questionId: number,
+    keywordId: number,
     answer: string
-  ): Promise<object> {
-    let result = {} as any;
+  ): Promise<[statusCode: number, result?: IQuestion]> {
+    //1. userId + keywordId로 해당하는 userKeywordId 찾기
+    const querySelectUserKeywordId = `
+      SELECT user_keyword_id AS userKeywordId FROM UserKeyword
+      WHERE user_id = ? AND keyword_id = ? LIMIT 1`;
+    const [selectUserKeywordIdResult] = (await this.db.query(
+      querySelectUserKeywordId,
+      [userId, keywordId]
+    )) as any;
+    let userKeywordId = selectUserKeywordIdResult[0].userKeywordId;
 
     //1. 질문에 답했으면 해당키워드 업데이트하기
     const keywordServiceInstance = Container.get(KeywordService);
-    const response = (await keywordServiceInstance.updateKeywordAnswered(
-      user_keyword_id
-    )) as any;
-    result.isAnswerColUpdated = response.isUpdated;
+    const isKeywordAnsweredUpdated =
+      await keywordServiceInstance.updateKeywordAnswered(userKeywordId);
+    if (!isKeywordAnsweredUpdated) return [400, undefined]; //Error Check
 
     //2. 질문에 대한 답변 DB에 넣기
     const queryAnswerToQuestion = `
-      INSERT INTO UserQuestion (user_question_id, answer, created_at, modified_at)
-      VALUES(?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE answer = VALUES(answer), modified_at = NOW()`;
+      UPDATE UserQuestion SET answer = ?, modified_at = NOW() WHERE user_id = ? AND question_id = ?`;
     const [queryAnswerToQuestionResult] = (await this.db.query(
       queryAnswerToQuestion,
-      [user_question_id, answer]
+      [answer, userId, questionId]
     )) as any;
-    if (queryAnswerToQuestionResult.affectedRows) result.isAnswerSuccess = 1;
-    else result.isAnswerSuccess = 0;
+    if (!queryAnswerToQuestionResult.affectedRows) return [400, undefined]; //Error Check
 
     //3. 꼬리질문 생성하기
-    let tailQuestion = await this.getKeywordsFromCE(user_id, answer);
-    if (tailQuestion && tailQuestion !== "None") {
-      result.tailQuestion = tailQuestion;
+    let chainQuestion = await this.getChainQuestion(userId, answer);
+    if (chainQuestion) {
+      return [200, chainQuestion];
+    } else {
+      return [204, undefined];
     }
-
-    return result;
   }
 
-  private async getKeywordsFromCE(userId: number, sentence: string) {
-    //1. 답변을 코어엔진에게 키워드 추출 요청
+  /**
+   * Get keywords from sentence through CE
+   * @param sentence
+   * @returns {IKeyword[]}
+   */
+  private async getKeywordsThroughCE(
+    sentence: string
+  ): Promise<IKeyword[] | undefined> {
+    //답변을 코어엔진에게 키워드 추출 요청
     let res = await axios.post(`${config.ceServerURL}/ce/keywords`, {
       elements: JSON.stringify([sentence]),
     });
 
     let keywords: IKeyword[][] = parseObject(res.data);
-    let keywordIds = keywords[0].map((k) => k.id); //cles 요청이었기 때문에 첫번째 항목만 담겨서 올것임
+    if (keywords && keywords[0] && keywords[0].length > 0) {
+      return keywords[0]; //cles 요청이었기 때문에 첫번째 항목만 담겨서 올것임
+    } else {
+      return undefined;
+    }
+  }
 
-    let result = "None";
+  /**
+   * Get chain question from the sentence
+   * @param userId
+   * @param sentence
+   * @returns Promise<IQuestion | undefined>
+   */
+  private async getChainQuestion(
+    userId: number,
+    sentence: string
+  ): Promise<IQuestion | undefined> {
+    //1. 답변을 코어엔진에게 키워드 추출 요청
+    const keywords = await this.getKeywordsThroughCE(sentence);
+    if (!keywords) return undefined; //Error Check
+    let keywordIds = keywords.map((k) => k.id);
 
     // 2. UserKeyword 테이블에 방금 가져온 키워드와 겹치는 것을 가져옵니다.
-    if (keywordIds.length > 0) {
-      //user_question_id, user_keyword_id
-      const queryQuestion =
-        "SELECT Q.question_id, Q.content, Q.type FROM Question AS Q WHERE question_id IN (" +
-        "SELECT question_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (" +
-        "SELECT question_id FROM UserQuestion WHERE user_keyword_id IN (" +
-        "SELECT user_keyword_id FROM UserKeyword WHERE user_id = ?)))";
-      const [questionResult] = (await this.db.query(queryQuestion, [
-        keywordIds,
-        userId,
-      ])) as any;
+    const queryQuestion = `
+      SELECT Q.question_id questionId, T.keyword_id keywordId, Q.content FROM Question Q INNER JOIN (
+        SELECT question_id, keyword_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (
+        SELECT question_id FROM UserQuestion WHERE user_id = ?)) T ON Q.question_id = T.question_id`;
+    const [questionResult] = (await this.db.query(queryQuestion, [
+      keywordIds,
+      userId,
+    ])) as any;
 
-      if (questionResult && questionResult.length > 0) {
-        result = questionResult[getRandomInt(0, questionResult.length)];
-      }
+    if (questionResult && questionResult.length > 0) {
+      const randomIndex = getRandomInt(0, questionResult.length);
+      const result: IQuestion = questionResult[randomIndex];
+      return result;
+    } else {
+      return undefined;
     }
-
-    return result;
   }
 
   // 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
