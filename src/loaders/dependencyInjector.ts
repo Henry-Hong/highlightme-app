@@ -7,7 +7,7 @@ export default ({
   db,
   models,
 }: {
-  db: mysql2.PoolConnection;
+  db: mysql2.Pool;
   models: { name: string; model: any }[];
 }) => {
   try {

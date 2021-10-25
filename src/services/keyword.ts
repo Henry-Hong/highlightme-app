@@ -11,7 +11,7 @@ import { parseObject } from "../utils";
 @Service()
 export default class KeywordService {
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.PoolConnection>("db");
+  db = Container.get<mysql2.Pool>("db");
   questionServiceInstance = Container.get(QuestionService);
 
   // K1 GET localhost:3001/api/keywords

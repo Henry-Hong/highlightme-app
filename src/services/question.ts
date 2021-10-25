@@ -14,7 +14,7 @@ import { getRandomInt, parseObject } from "../utils/index";
 @Service()
 export default class questionService {
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.PoolConnection>("db");
+  db = Container.get<mysql2.Pool>("db");
 
   // Q1 GET localhost:3001/api/questions
   // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
