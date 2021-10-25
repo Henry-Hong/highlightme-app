@@ -16,7 +16,7 @@ import { parseObject } from "../utils";
 export default class CLService {
   //공용 함수들!
   constructor(@Inject("logger") private logger: Logger) {}
-  db = Container.get<mysql2.Pool>("db");
+  pool = Container.get<mysql2.Pool>("pool");
   keywordServiceInstance = Container.get(KeywordService);
   questionServiceInstance = Container.get(QuestionService);
 
@@ -40,15 +40,15 @@ export default class CLService {
     // CLES 파싱
     let CLElements = JSON.parse(CLES);
     let answerDatas: any[] = [];
-    const conenction = await this.db.getConnection();
+    const connection = await this.pool.getConnection();
 
     try {
-      await conenction.beginTransaction(); // START TRANSACTION
+      await connection.beginTransaction(); // START TRANSACTION
       
       CLElements.map(async (cleFromFront: ICLElementNode) => {
         const queryExistCLE = `
         SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
-        const [cleFromDB] = (await conenction.query(queryExistCLE, [
+        const [cleFromDB] = (await connection.query(queryExistCLE, [
           parseInt(cleFromFront.cl_element_id),
           cl_id,
         ])) as any;
@@ -61,7 +61,7 @@ export default class CLService {
             // 업데이트 먼저 한다.
             const queryCLEUpdate = `
               UPDATE CLElement E SET E.problem=?, E.answer=?, E.modified_at=NOW() WHERE E.cl_element_id=? AND E.cl_id=?`;
-            const queryResult = (await conenction.query(queryCLEUpdate, [
+            const queryResult = (await connection.query(queryCLEUpdate, [
               cleFromFront.problem,
               cleFromFront.answer,
               cleFromFront.cl_element_id,
@@ -82,7 +82,7 @@ export default class CLService {
           const queryCLEInsert = `
             INSERT INTO CLElement (cl_element_id, problem, answer, cl_id, public)
             VALUES (?,?,?,?,1)`;
-          const queryResult = (await conenction.query(queryCLEInsert, [
+          const queryResult = (await connection.query(queryCLEInsert, [
             parseInt(cleFromFront.cl_element_id),
             cleFromFront.problem,
             cleFromFront.answer,
@@ -91,10 +91,10 @@ export default class CLService {
         }
       });
 
-      await conenction.commit(); // COMMIT
+      await connection.commit(); // COMMIT
     } catch (err) {
       console.log("rollback");
-      await conenction.rollback(); // ROLLBACK
+      await connection.rollback(); // ROLLBACK
     } finally {
       // 키워드 분석 새롭게 한다.
       if (answerDatas.length > 0) {
@@ -104,7 +104,7 @@ export default class CLService {
             answerDatas
           )) as any;
       }
-      await conenction.release();
+      await connection.release();
     }
     return {
       result: 1,
@@ -118,7 +118,7 @@ export default class CLService {
     const { cl_id, isNew } = await this.getOrCreateCLId(user_id);
     const queryGetCLEs = `
       SELECT * FROM CLElement WHERE cl_id = ?`;
-    const [queryGetCLEsResult] = await this.db.query(queryGetCLEs, [cl_id]);
+    const [queryGetCLEsResult] = await this.pool.query(queryGetCLEs, [cl_id]);
     return { isNew: isNew, cl_id: cl_id, cles: queryGetCLEsResult };
   }
 
@@ -134,7 +134,7 @@ export default class CLService {
       const queryClInitialize = `
         INSERT INTO CL (user_id, title, company, tags, comment, view_num, user_question_num, created_at)
         VALUES (?, "init", "init", "init", "init", 0, 0, NOW())`;
-      const [queryClInitializeResult] = (await this.db.query(
+      const [queryClInitializeResult] = (await this.pool.query(
         queryClInitialize,
         [user_id]
       )) as any;
@@ -153,7 +153,7 @@ export default class CLService {
     cl_id: number,
     user_id: number
   ) {
-    const connection = await this.db.getConnection();
+    const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction(); // START TRANSACTION
 
@@ -200,7 +200,7 @@ export default class CLService {
 
     const queryDeleteCLElement = `
         DELETE FROM CLElement WHERE cl_element_id=? AND cl_id=?`;
-    const [queryDeleteCLElementResult] = await this.db.query(
+    const [queryDeleteCLElementResult] = await this.pool.query(
       queryDeleteCLElement,
       [cl_element_id, cl_id]
     );
@@ -213,7 +213,7 @@ export default class CLService {
 
     const queryRearrangeOrder = `
       UPDATE CLElement SET cl_element_id = cl_element_id - 1 WHERE cl_id = ? AND cl_element_id > ?`;
-    const [queryRearrangeOrderResult] = await this.db.query(
+    const [queryRearrangeOrderResult] = await this.pool.query(
       queryRearrangeOrder,
       [cl_id, cl_element_id]
     );
@@ -223,7 +223,7 @@ export default class CLService {
   private async getCLIdFromUserId(user_id: number) {
     const queryGetCLIdFromUserId = `
       SELECT cl_id FROM CL WHERE user_id = ? LIMIT 1`;
-    const [queryGetCLIdFromUserIdResult] = (await this.db.query(
+    const [queryGetCLIdFromUserIdResult] = (await this.pool.query(
       queryGetCLIdFromUserId,
       [user_id]
     )) as any;
