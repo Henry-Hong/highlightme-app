@@ -4,6 +4,7 @@ import mysql2 from "mysql2/promise";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { parseObject } from "../utils";
 
 export default () => {
   passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
@@ -91,7 +92,6 @@ export default () => {
     )
   );
 
-  const parseObj = (o: any) => JSON.parse(JSON.stringify(o));
   passport.use(
     new LocalStrategy(
       {
@@ -105,7 +105,7 @@ export default () => {
         try {
           const queryUserExist = "SELECT * FROM User WHERE email=(?)";
           const [userExistResult] = await db.query(queryUserExist, [email]);
-          const [userExistResultParse] = parseObj(userExistResult);
+          const [userExistResultParse] = parseObject(userExistResult);
           let user_id = userExistResultParse?.user_id;
 
           // 회원가입절차 진행
@@ -120,7 +120,7 @@ export default () => {
               "",
               "2",
             ]);
-            const createUserResultParse = parseObj(createUserResult);
+            const createUserResultParse = parseObject(createUserResult);
             if (user_id === undefined) user_id = createUserResultParse.insertId;
 
             return done(null, {
