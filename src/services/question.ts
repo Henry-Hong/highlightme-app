@@ -213,7 +213,7 @@ export default class questionService {
    * @param {string} answer
    * @returns Promise<[statusCode: number, result?: IQuestion]>
    */
-  public async answerToQuestion(
+  public async answerQuestion(
     userId: number,
     questionId: number,
     keywordId: number,
