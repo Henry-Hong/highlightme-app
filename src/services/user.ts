@@ -28,7 +28,7 @@ export default class UserService {
     email: string,
     password: string
   ): Promise<{ user: IUser; token: string }> {
-    const db = Container.get<mysql2.Pool>("db");
+    const pool = Container.get<mysql2.Pool>("pool");
 
     const dummyUser: IUser = {
       _id: "sample id",
@@ -39,7 +39,7 @@ export default class UserService {
     };
 
     const query = "SELECT * FROM User WHERE email = ?";
-    const [user] = await db.query(query, [email]);
+    const [user] = await pool.query(query, [email]);
 
     if (!user) {
       console.log("No user");
@@ -71,11 +71,11 @@ export default class UserService {
     fieldIds: number[]
   ): Promise<{ token: string }> {
     // 1. 커넥션
-    const db = Container.get<mysql2.Pool>("db");
+    const pool = Container.get<mysql2.Pool>("pool");
 
     // 2. 이메일 벨리데이션 -> 이메일 중복확인
     const emailValidationQuery = "SELECT COUNT(*) FROM User WHERE email = ?";
-    const [counts] = await db.query(emailValidationQuery, [email]);
+    const [counts] = await pool.query(emailValidationQuery, [email]);
     // if (parseInt(counts) > 0) {
     //   console.log("이미 있는 이메일입니다.");
     // }
@@ -93,7 +93,7 @@ export default class UserService {
     //   "sha512"
     // );
     // password = derivedKey.toString('hex')
-    const [userInsertResult] = await db.query(userInsertQuery, [
+    const [userInsertResult] = await pool.query(userInsertQuery, [
       email,
       password,
       nickname,
