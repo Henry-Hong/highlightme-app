@@ -5,9 +5,6 @@ import expressLoader from "./express";
 import Logger from "./logger";
 
 export default async (expressApp: express.Application) => {
-  // const mysql2Connection = await mysql2Loader();
-  // Logger.info("✌️ DB loaded and connected!");
-
   const pool = getPool();
 
   //유저모델 정의
