@@ -39,7 +39,7 @@ export default () => {
       },
       async (accessToken, refreshToken, profile, done) => {
         console.log("profile", profile);
-        const db = Container.get<mysql2.Pool>("db");
+        const pool = Container.get<mysql2.Pool>("pool");
         const {
           id: tokenId,
           emails: [{ value: email }],
@@ -47,7 +47,7 @@ export default () => {
         } = profile as any;
         try {
           const queryUserExist = "SELECT * FROM User WHERE email=(?)";
-          const [userExistResult] = await db.query(queryUserExist, [email]);
+          const [userExistResult] = await pool.query(queryUserExist, [email]);
           const [userExistResultParse] = JSON.parse(
             JSON.stringify(userExistResult)
           );
@@ -60,7 +60,7 @@ export default () => {
             const queryCreateUser = `
               INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
               VALUES(?,?,?,?,NOW(),NOW())`;
-            const [createUserResult] = (await db.query(queryCreateUser, [
+            const [createUserResult] = (await pool.query(queryCreateUser, [
               email,
               tokenId,
               "",
@@ -100,11 +100,11 @@ export default () => {
         session: true,
       },
       async (email, googleId, done): Promise<void> => {
-        const db = Container.get<mysql2.Pool>("db");
+        const pool = Container.get<mysql2.Pool>("pool");
         const provider = "google-local"; //프론트에서 구글, 백엔드에서 로컬
         try {
           const queryUserExist = "SELECT * FROM User WHERE email=(?)";
-          const [userExistResult] = await db.query(queryUserExist, [email]);
+          const [userExistResult] = await pool.query(queryUserExist, [email]);
           const [userExistResultParse] = parseObject(userExistResult);
           let user_id = userExistResultParse?.user_id;
 
@@ -114,7 +114,7 @@ export default () => {
             const queryCreateUser = `
               INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
               VALUES(?,?,?,?,NOW(),NOW())`;
-            const [createUserResult] = await db.query(queryCreateUser, [
+            const [createUserResult] = await pool.query(queryCreateUser, [
               email,
               googleId,
               "",

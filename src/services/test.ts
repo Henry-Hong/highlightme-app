@@ -9,14 +9,14 @@ export default class TestService {
   constructor(@Inject("logger") private logger: Logger) {}
 
   public async dbTest(): Promise<{ content: object }> {
-    const db = Container.get<mysql2.Pool>("db");
+    const pool = Container.get<mysql2.Pool>("pool");
 
     const query = `SELECT * FROM BigField`;
-    const [dbResult] = await db.query(query);
+    const [dbResult] = await pool.query(query);
     const pResult = JSON.parse(JSON.stringify(dbResult));
 
     const query2 = `SELECT * FROM Field`;
-    const [dbResult2] = await db.query(query2);
+    const [dbResult2] = await pool.query(query2);
     const pResult2 = JSON.parse(JSON.stringify(dbResult2));
 
     let result = { bigField: [] } as any;

@@ -20,6 +20,7 @@ export default class CLService {
   keywordServiceInstance = Container.get(KeywordService);
   questionServiceInstance = Container.get(QuestionService);
 
+  //TODO db:any 변수명 혼동
   private compareCLE(front: ICLElementNode, db: any) {
     if (front.problem == db.problem && front.answer == db.answer) return 1;
     else return 0;
