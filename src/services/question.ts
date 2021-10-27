@@ -17,10 +17,10 @@ export default class questionService {
   pool = Container.get<mysql2.Pool>("pool");
 
   /**
-   * Q1 GET localhost:3001/api/questions
+   * Q1 GET /api/questions
    * 키워드를 선택하면 해당하는 질문 목록과 그 질문들에 대한 사용자의 상태(좋아요, 싫어요 등)을 함께 보낸다
-   * @param userId
-   * @param keywordId
+   * @param {number} userId
+   * @param {number} keywordId
    * @returns {Promise<[statusCode: number, questions?: IQuestion[]]>}
    */
   public async loadQuestions(
@@ -49,7 +49,8 @@ export default class questionService {
 
   /**
    * 해당 유저가 갖고 있는 모든 질문 관련 정보를 가져옴
-   * @param userId
+   * @param {number} userId
+   * @param {number[]} questionIds
    * @returns {IQuestion[]}
    */
   private async getUserQuestions(
@@ -91,129 +92,50 @@ export default class questionService {
     return result[0];
   }
 
-  private async isQuestionDislikeUp(question_id: number, user_id: number) {
-    const queryIsUp = `
-      SELECT * FROM Dislikes WHERE question_id = ? AND user_id = ?`;
-    const [queryIsUpResult] = (await this.pool.query(queryIsUp, [
-      question_id,
-      user_id,
+  /**
+   * Q2 POST /api/questions/like
+   * 특정 질문에 대한 좋아요 처리
+   * @param userId
+   * @param questionId
+   * @returns {number} 성공 여부
+   */
+  public async likeQuestion(
+    userId: number,
+    questionId: number
+  ): Promise<number> {
+    const query = `
+        UPDATE UserQuestion SET liked = !liked, disliked = 0 WHERE user_id = ? AND question_id = ?`;
+    const [result] = (await this.pool.query(query, [
+      userId,
+      questionId,
     ])) as any;
-    if (queryIsUpResult.length == 0) return 0;
-    else return 1;
-  }
 
-  private async isQuestionLikeUp(question_id: number, user_id: number) {
-    const queryIsUp = `
-      SELECT * FROM Likes WHERE question_id = ? AND user_id = ?`;
-    const [queryIsUpResult] = (await this.pool.query(queryIsUp, [
-      question_id,
-      user_id,
-    ])) as any;
-    if (queryIsUpResult.length == 0) return 0;
-    else return 1;
-  }
-
-  // Q2 POST localhost:3001/api/questions/like
-  // 특정 질문에 대해 좋아요를 남길때!
-  public async questionLike(
-    question_id: number,
-    user_id: number
-  ): Promise<object> {
-    let result = {
-      upLike: false,
-      downDislike: false,
-      deleted: false,
-    } as any;
-
-    // 좋아요 상태인지 싫어요 상태인지 가져오기
-    const isUp = await this.isQuestionLikeUp(question_id, user_id);
-
-    if (isUp === 0) {
-      //좋아요활성화하고싶을때
-      // case1: 좋down, 싫down OR 좋down, 싫up -> 좋up
-      // 일단 좋아요를 up으로 바꾼다.
-      const queryLikeUp = `
-        INSERT IGNORE INTO Likes (question_id, user_id) VALUES (?, ?)`;
-      const [queryLikeUpResult] = await this.pool.query(queryLikeUp, [
-        question_id,
-        user_id,
-      ]);
-      const queryLikeUpResultParse = parseObject(queryLikeUpResult);
-      if (queryLikeUpResultParse.affectedRows === 1) result.upLike = true;
-
-      // 그다음 싫어요를 down으로 바꾼다. 그냥 요청 2번날리기수법.
-      const queryDislikeDown = `DELETE FROM Dislikes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryDislikeDownResult] = await this.pool.query(queryDislikeDown, [
-        question_id,
-        user_id,
-      ]);
-      const queryDislikeDownResultParse = parseObject(queryDislikeDownResult);
-      if (queryDislikeDownResultParse.affectedRows === 1)
-        result.downDislike = true;
-    } else if (isUp === 1) {
-      // case2: 좋up, 싫down -> 좋down, 싫down : 좋아요 비활성화하고싶다.
-      const queryLikeDown = `DELETE FROM Likes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryLikeDownResult] = await this.pool.query(queryLikeDown, [
-        question_id,
-        user_id,
-      ]);
-      const queryLikeDownResultParse = parseObject(queryLikeDownResult);
-      if (queryLikeDownResultParse.affectedRows === 1) result.deleted = true;
-    }
-
-    return result;
-  }
-
-  // Q3 POST localhost:3001/api/questions/dislike
-  // 특정 질문에 대해 싫어요를 남길때!
-  public async questionDislike(
-    question_id: number,
-    user_id: number
-  ): Promise<object> {
-    let result = {
-      upDislike: false,
-      downLike: false,
-      deleted: false,
-    } as any;
-
-    const isUp = await this.isQuestionDislikeUp(question_id, user_id);
-
-    if (isUp === 0) {
-      //싫어요 활성화하고싶을때
-      // case1: 좋down, 싫down OR 좋up, 싫down
-      const queryDislikeUp = `
-        INSERT IGNORE INTO Dislikes (question_id, user_id) VALUES (?, ?)`;
-      const [queryDislikeUpResult] = await this.pool.query(queryDislikeUp, [
-        question_id,
-        user_id,
-      ]);
-      const queryDislikeUpResultParse = parseObject(queryDislikeUpResult);
-      if (queryDislikeUpResultParse.affectedRows === 1) result.upDislike = true;
-      else result.message = "이런일은없어야하는데..";
-
-      // 그다음 좋아요를 down으로 바꾼다. 그냥 요청 2번날리기수법.
-      const queryLikeDown = `DELETE FROM Likes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryLikeDownResult] = await this.pool.query(queryLikeDown, [
-        question_id,
-        user_id,
-      ]);
-      const queryLikeDownResultParse = parseObject(queryLikeDownResult);
-      if (queryLikeDownResultParse.affectedRows === 1) result.downLike = true;
-    } else if (isUp === 1) {
-      // case2: 좋down, 싫up -> 좋down 싫down : 싫어요 비활성화하고싶다.
-      const queryDislikeDown = `DELETE FROM Dislikes WHERE question_id=(?) AND user_id=(?)`;
-      const [queryDislikeDownResult] = await this.pool.query(queryDislikeDown, [
-        question_id,
-        user_id,
-      ]);
-      const queryDislikeDownResultParse = parseObject(queryDislikeDownResult);
-      if (queryDislikeDownResultParse.affectedRows === 1) result.deleted = true;
-    }
-    return result;
+    return result.affectedRows > 0 ? 200 : 400;
   }
 
   /**
-   * Q5 POST localhost:3001/api/questions/answer
+   * Q2 POST /api/questions/dislike
+   * 특정 질문에 대한 싫어요 처리
+   * @param userId
+   * @param questionId
+   * @returns {number} 성공 여부
+   */
+  public async dislikeQuestion(
+    userId: number,
+    questionId: number
+  ): Promise<number> {
+    const query = `
+        UPDATE UserQuestion SET disliked = !disliked, liked = 0 WHERE user_id = ? AND question_id = ?`;
+    const [result] = (await this.pool.query(query, [
+      userId,
+      questionId,
+    ])) as any;
+
+    return result.affectedRows > 0 ? 200 : 400;
+  }
+
+  /**
+   * Q5 POST /api/questions/answer
    * 특정 질문에 대해 답하기
    * @param {number} userId
    * @param {number} questionId

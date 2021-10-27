@@ -9,12 +9,14 @@ import config from "../config";
 
 const route = Router();
 
-//localhost:3001/api/questions
+///api/questions
 export default (app: Router) => {
   app.use("/questions", route);
 
-  // Q1 POST localhost:3001/api/questions
-  // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
+  /**
+   * Q1 POST /api/questions
+   * 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
+   */
   route.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
     logger.debug(`Calling POST '/api/questions', req.body: %o`, req.body);
@@ -35,8 +37,10 @@ export default (app: Router) => {
     }
   });
 
-  // Q2 POST localhost:3001/api/questions/like
-  // 특정 질문에 대해 좋아요를 남길때!
+  /**
+   * Q2 POST /api/questions/like
+   * 특정 질문에 대해 좋아요를 남길때!
+   */
   route.post(
     "/like",
     async (req: Request, res: Response, next: NextFunction) => {
@@ -46,14 +50,18 @@ export default (app: Router) => {
         req.body
       );
       try {
-        const { question_id } = req.body;
-        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const { user_id: userId } = (req.user as any) || {
+          user_id: config.constUserId,
+        };
+        const questionId = parseInt(req.body.questionId);
+
         const questionServiceInstance = Container.get(QuestionService);
-        const result = await questionServiceInstance.questionLike(
-          parseInt(question_id),
-          parseInt(user_id)
+        const statusCode = await questionServiceInstance.likeQuestion(
+          userId,
+          questionId
         );
-        return res.status(200).json(result);
+
+        return res.sendStatus(statusCode);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
@@ -61,8 +69,10 @@ export default (app: Router) => {
     }
   );
 
-  // Q3 POST localhost:3001/api/questions/dislike
-  // 특정 질문에 대해 싫어요를 남길때!
+  /**
+   * Q3 POST /api/questions/dislike
+   * 특정 질문에 대해 싫어요를 남길때!
+   */
   route.post(
     "/dislike",
     async (req: Request, res: Response, next: NextFunction) => {
@@ -72,14 +82,18 @@ export default (app: Router) => {
         req.body
       );
       try {
-        const { question_id, isUp } = req.body;
-        const { user_id } = (req.user as any) || { user_id: 7 }; //as any로 하지말고, Interface를 추가
+        const { user_id: userId } = (req.user as any) || {
+          user_id: config.constUserId,
+        };
+        const questionId = parseInt(req.body.questionId);
+
         const questionServiceInstance = Container.get(QuestionService);
-        const result = await questionServiceInstance.questionDislike(
-          parseInt(question_id),
-          parseInt(user_id)
+        const statusCode = await questionServiceInstance.dislikeQuestion(
+          userId,
+          questionId
         );
-        return res.status(200).json(result);
+
+        return res.sendStatus(statusCode);
       } catch (e) {
         logger.error("🔥 error: %o", e);
         return next(e);
@@ -87,8 +101,10 @@ export default (app: Router) => {
     }
   );
 
-  // Q5 POST localhost:3001/api/questions/answer
-  // 특정 질문에 대해 답하기!
+  /**
+   * Q5 POST /api/questions/answer
+   * 특정 질문에 대해 답하기!
+   */
   route.post(
     "/answer",
     async (req: Request, res: Response, next: NextFunction) => {
