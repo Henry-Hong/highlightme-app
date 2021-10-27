@@ -19,12 +19,14 @@ export default (app: Router) => {
    */
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug(`Calling GET '/api/questions', req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/questions', req.params: %o`, req.params);
     try {
       const { user_id: userId } = (req.user as any) || {
         user_id: config.constUserId,
       };
-      const keywordId = parseInt(req.body.keywordId);
+      const keywordId = parseInt(req.query.keywordId as string);
+
+      console.log("asdf" + keywordId);
 
       const questionServiceInstance = Container.get(QuestionService);
       const [statusCode, questions] =
@@ -46,8 +48,8 @@ export default (app: Router) => {
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
       logger.debug(
-        `Calling GET '/api/questions/scrapped', req.body: %o`,
-        req.body
+        `Calling GET '/api/questions/scrapped', req.params: %o`,
+        req.params
       );
       try {
         const { user_id: userId } = (req.user as any) || {
