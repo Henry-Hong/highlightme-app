@@ -75,7 +75,7 @@ export default class KeywordService {
       return { isSuccess: true, isKeywordStateNone: result.affectedRows > 0 };
     } catch (error) {
       console.log(error);
-      return { isSuccess: true };
+      return { isSuccess: false };
     }
   }
 
