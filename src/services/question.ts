@@ -174,11 +174,9 @@ export default class questionService {
     if (!queryAnswerToQuestionResult.affectedRows) return [400, undefined]; //Error Check
 
     //3. 꼬리질문 생성하기
-    let chainQuestion = await this.getChainQuestion(userId, answer);
-    if (chainQuestion) {
-      // 4. 생성한 꼬리질문 저장하기
-
-      return [200, chainQuestion];
+    let tailQuestion = await this.getTailQuestion(userId, answer);
+    if (tailQuestion) {
+      return [200, tailQuestion];
     } else {
       return [204, undefined];
     }
@@ -206,12 +204,12 @@ export default class questionService {
   }
 
   /**
-   * Get chain question from the sentence
+   * Get tail question from the sentence
    * @param userId
    * @param sentence
    * @returns Promise<IQuestion | undefined>
    */
-  private async getChainQuestion(
+  private async getTailQuestion(
     userId: number,
     sentence: string
   ): Promise<IQuestion | undefined> {
