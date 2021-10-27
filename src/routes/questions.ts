@@ -17,7 +17,7 @@ export default (app: Router) => {
    * Q1 POST /api/questions
    * 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
    */
-  route.post("/", async (req: Request, res: Response, next: NextFunction) => {
+  route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
     logger.debug(`Calling POST '/api/questions', req.body: %o`, req.body);
     try {
