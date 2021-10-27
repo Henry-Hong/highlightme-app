@@ -106,7 +106,7 @@ export default class questionService {
   }
 
   /**
-   * Q2 POST /api/questions/dislike
+   * Q3 POST /api/questions/dislike
    * 특정 질문에 대한 싫어요 처리
    * @param userId
    * @param questionId
@@ -118,6 +118,48 @@ export default class questionService {
   ): Promise<number> {
     const query = `
         UPDATE UserQuestion SET disliked = !disliked, liked = 0 WHERE user_id = ? AND question_id = ?`;
+    const [result] = (await this.pool.query(query, [
+      userId,
+      questionId,
+    ])) as any;
+
+    return result.affectedRows > 0 ? 200 : 400;
+  }
+
+  /**
+   * Q4 POST /api/questions/scrap
+   * 특정 질문에 대한 스크랩 처리
+   * @param userId
+   * @param questionId
+   * @returns {number} 성공 여부
+   */
+  public async scrapQuestion(
+    userId: number,
+    questionId: number
+  ): Promise<number> {
+    const query = `
+        UPDATE UserQuestion SET scrapped = !scrapped WHERE user_id = ? AND question_id = ?`;
+    const [result] = (await this.pool.query(query, [
+      userId,
+      questionId,
+    ])) as any;
+
+    return result.affectedRows > 0 ? 200 : 400;
+  }
+
+  /**
+   * Q6 POST /api/questions/interviewListed
+   * 특정 질문에 대한 모의면접 후보 등록 처리
+   * @param userId
+   * @param questionId
+   * @returns {number} 성공 여부
+   */
+  public async interviewListQuestion(
+    userId: number,
+    questionId: number
+  ): Promise<number> {
+    const query = `
+        UPDATE UserQuestion SET interview_listed = !interview_listed WHERE user_id = ? AND question_id = ?`;
     const [result] = (await this.pool.query(query, [
       userId,
       questionId,

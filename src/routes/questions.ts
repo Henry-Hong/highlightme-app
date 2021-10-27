@@ -135,4 +135,68 @@ export default (app: Router) => {
       }
     }
   );
+
+  /**
+   * Q4 POST /api/questions/scrap
+   * 특정 질문을 스크랩하거나 해제할 때!
+   */
+  route.post(
+    "/scrap",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST "/api/questions/scrap", req.body: %o`,
+        req.body
+      );
+      try {
+        const { user_id: userId } = (req.user as any) || {
+          user_id: config.constUserId,
+        };
+        const questionId = parseInt(req.body.questionId);
+
+        const questionServiceInstance = Container.get(QuestionService);
+        const statusCode = await questionServiceInstance.scrapQuestion(
+          userId,
+          questionId
+        );
+
+        return res.sendStatus(statusCode);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
+
+  /**
+   * Q6 POST /api/questions/interviewListed
+   * 특정 질문을 모의면접 질문 후보에 등록하거나 해제할 때!
+   */
+  route.post(
+    "/interviewListed",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling POST "/api/questions/interviewListed", req.body: %o`,
+        req.body
+      );
+      try {
+        const { user_id: userId } = (req.user as any) || {
+          user_id: config.constUserId,
+        };
+        const questionId = parseInt(req.body.questionId);
+
+        const questionServiceInstance = Container.get(QuestionService);
+        const statusCode = await questionServiceInstance.interviewListQuestion(
+          userId,
+          questionId
+        );
+
+        return res.sendStatus(statusCode);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
 };
