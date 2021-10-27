@@ -13,7 +13,7 @@ import * as path from "path";
 const route = Router();
 
 export default (app: Router) => {
-  //localhost:3001/api/fields
+  //localhost:3001/api/fieldsz
   app.use("/fields", route);
   const logger: Logger = Container.get("logger");
   const FieldServiceInstance = Container.get(FieldService);
