@@ -51,21 +51,31 @@ export default class KeywordService {
     }
   }
 
-  // K2 POST localhost:3001/api/keywords/read
-  // 한 키워드를 읽었음을 알리는 api
-  public async updateKeywordRead(user_keyword_id: number): Promise<object> {
+  /**
+   * K2 POST localhost:3001/api/keywords/read
+   * 한 키워드를 읽었음을 알리는 api
+   * @param {number} userId
+   * @param {number} keywordId
+   * @returns {Boolean} DB 쿼리가 성공했는지 알려줌
+   */
+  public async updateKeywordRead(
+    userId: number,
+    keywordId: number
+  ): Promise<{ isSuccess: Boolean; isKeywordStateNone?: Boolean }> {
     try {
+      //answered 상태가 3가지이기 때문에 0번(무상태)일 때만 1번(읽은상태)로 바꿔주어야함
+      //0: none, 1: read, 2: answered
       const queryKeywordRead = `
-        UPDATE UserKeyword SET answered = 1 WHERE user_keyword_id = ? AND answered = 0`;
-      const [queryKeywordReadResult] = (await this.pool.query(queryKeywordRead, [
-        user_keyword_id,
+        UPDATE UserKeyword SET answered = 1 WHERE user_id = ? AND keyword_id = ? AND answered = 0`;
+      const [result] = (await this.pool.query(queryKeywordRead, [
+        userId,
+        keywordId,
       ])) as any;
-      let result = { isUpdated: queryKeywordReadResult.affectedRows };
 
-      return result;
+      return { isSuccess: true, isKeywordStateNone: result.affectedRows > 0 };
     } catch (error) {
       console.log(error);
-      return { result: "error", message: error };
+      return { isSuccess: true };
     }
   }
 

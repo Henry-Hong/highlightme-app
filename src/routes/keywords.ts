@@ -45,10 +45,11 @@ export default (app: Router) => {
       logger.debug(`Calling POST '/api/keywords/read', req.body: %o`, req.body);
 
       try {
-        const { user_id } = (req.user as any) || { user_id: 7 };
+        const { user_id: userId } = (req.user as any) || { user_id: 7 };
         const { user_keyword_id } = req.body;
         const keywordServiceInstance = Container.get(KeywordService);
         const result = await keywordServiceInstance.updateKeywordRead(
+          userId,
           parseInt(user_keyword_id)
         );
 

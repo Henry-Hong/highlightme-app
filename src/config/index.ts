@@ -35,4 +35,5 @@ export default {
   api: {
     prefix: "/api",
   },
+  constUserId: process.env.CONST_USER_ID,
 };
