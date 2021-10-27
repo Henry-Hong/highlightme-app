@@ -8,7 +8,6 @@ import KeywordService from "../services/keyword";
 
 import { ICL } from "../interfaces/ICL";
 import { IQuestion } from "../interfaces/IQuestion";
-// import fetch from "node-fetch";
 import { IKeyword } from "../interfaces/IKeyword";
 import { getRandomInt, parseObject } from "../utils/index";
 
@@ -17,59 +16,67 @@ export default class questionService {
   constructor(@Inject("logger") private logger: Logger) {}
   pool = Container.get<mysql2.Pool>("pool");
 
-  // Q1 GET localhost:3001/api/questions
-  // 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
-  public async questionList(
-    user_keyword_id: number,
-    user_id: number
-  ): Promise<object> {
-    let result = {} as any;
-
+  /**
+   * Q1 GET localhost:3001/api/questions
+   * 키워드를 선택하면 해당하는 질문 목록과 그 질문들에 대한 사용자의 상태(좋아요, 싫어요 등)을 함께 보낸다
+   * @param userId
+   * @param keywordId
+   * @returns {Promise<[statusCode: number, questions?: IQuestion[]]>}
+   */
+  public async loadQuestions(
+    userId: number,
+    keywordId: number
+  ): Promise<[statusCode: number, questions?: IQuestion[]]> {
     //1. 키워드 읽음 요청
     const keywordServiceInstance = Container.get(KeywordService);
-    const response = (await keywordServiceInstance.updateKeywordRead(
-      user_keyword_id
-    )) as any;
-    result.isAnswerColUpdated = response.isUpdated;
+    const { isSuccess, isKeywordStateNone } =
+      await keywordServiceInstance.updateKeywordRead(userId, keywordId);
+    if (!isSuccess) return [500, undefined]; //Error Check
 
-    //2. 키워드에 대한 질문풀 저장 요청
-    result.newCreatedUserQuestions = 0;
-    if (result.isAnswerColUpdated == 1) {
-      // 처음으로 키워드를 읽었다면
-      const { keyword_id } = (await this.getKeywordIdByUserKeywordId(
-        user_keyword_id
-      )) as any;
-      const userQuestionResult = await this.putUserQuestionsAfterCE(
-        user_id,
-        user_keyword_id,
-        keyword_id
-      );
-      result.newCreatedUserQuestions = userQuestionResult;
+    //2. keywordId에 해당하는 모든 questionIds 로딩
+    const questionIds = await this.getQuestionIdsFromKeywordId(keywordId);
+
+    //3. 처음으로 키워드를 읽었다면 모든 questionIds 저장
+    if (isKeywordStateNone) {
+      const isSuccess = await this.setUserQuestions(userId, questionIds);
+      if (!isSuccess) return [500, undefined]; //Error Check
     }
 
-    //3. 키워드에 대한 질문 응답요청
-    const queryQuestionInfo = `
-      SELECT
-      Q.question_id, Q.content, Q.type,
-      UQ.user_question_id, UQ.answer,
-      IF(EXISTS (SELECT * FROM Likes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS liked,
-      IF(EXISTS (SELECT * FROM Dislikes WHERE question_id = Q.question_id AND user_id = ?), true, false) AS disliked
+    //3. 사용자의 질문 정보 가져옴
+    let userQuestions = await this.getUserQuestions(userId, questionIds);
+    return [200, userQuestions];
+  }
+
+  /**
+   * 해당 유저가 갖고 있는 모든 질문 관련 정보를 가져옴
+   * @param userId
+   * @returns {IQuestion[]}
+   */
+  private async getUserQuestions(
+    userId: number,
+    questionIds: number[]
+  ): Promise<IQuestion[]> {
+    const query = `
+      SELECT Q.question_id id, Q.content, UQ.answer, UQ.liked, UQ.disliked, UQ.scrapped, UQ.interview_listed interviewListed
       FROM Question Q
-      INNER JOIN (SELECT * FROM UserQuestion WHERE user_keyword_id=?) UQ ON Q.question_id = UQ.question_id`;
-    const [questionInfoResult] = (await this.pool.query(queryQuestionInfo, [
-      user_id,
-      user_id,
-      user_keyword_id,
-    ])) as any;
+      INNER JOIN UserQuestion UQ ON Q.question_id = UQ.question_id
+      WHERE UQ.user_id = ? AND UQ.question_id IN (?)`;
+    let [result] = (await this.pool.query(query, [userId, questionIds])) as any;
 
     // //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
-
-    result.questions = questionInfoResult;
-    result.questions = result.questions.map((e: any) => ({
-      ...e,
-      liked: e.liked ? true : false,
-      disliked: e.disliked ? true : false,
-    }));
+    result = result.map((e: any) => {
+      return <IQuestion>{
+        id: e.id,
+        content: e.content,
+        answer: e.answer,
+        actions: {
+          liked: e.liked ? true : false,
+          disliked: e.disliked ? true : false,
+          scrapped: e.scrapped ? true : false,
+          interviewListed: e.interviewListed ? true : false,
+        },
+      };
+    });
 
     return result;
   }
@@ -247,6 +254,8 @@ export default class questionService {
     //3. 꼬리질문 생성하기
     let chainQuestion = await this.getChainQuestion(userId, answer);
     if (chainQuestion) {
+      // 4. 생성한 꼬리질문 저장하기
+
       return [200, chainQuestion];
     } else {
       return [204, undefined];
@@ -308,53 +317,43 @@ export default class questionService {
     }
   }
 
-  // 파이프라인 : 유저키워드에 따른 유저질문을 만들어준다.
-  // 질문리스트를 요청하면 Q1에서 호출된다!
-  private async putUserQuestionsAfterCE(
-    user_id: number,
-    user_keyword_id: number,
-    keyword_id: number
-  ) {
-    //0. IF EXIST 구문을 이용해서 만약에 user_keyword_id에 대한 질문이 이미 존재하면 그만 하고 나가기!
-    const queryExistCheck = `
-      SELECT * FROM UserQuestion WHERE user_keyword_id = ? LIMIT 1`;
-    const [queryExistCheckResult] = (await this.pool.query(queryExistCheck, [
-      user_keyword_id,
-    ])) as any;
-    if (queryExistCheckResult.length !== 0) return 0;
-
-    // 1. KeywordsQuestions 테이블에서 keyword_id를 통해서 question_id 를 뽑아낸다.
-    const queryKeywordQuestionPairs = `
-      SELECT * FROM KeywordsQuestions WHERE keyword_id = ?`;
-    const [queryKeywordQuestionPairsResult] = (await this.pool.query(
-      queryKeywordQuestionPairs,
-      [keyword_id]
-    )) as any;
-
-    // 2. UserQuestion 테이블에 question_id를 바탕으로, user_keyword_id를 기본으로 하여 추가한다
-    const queryMakeUserQuestions = `
-      INSERT INTO UserQuestion (user_id, question_id)
-      VALUES ?`;
-    const { userQuestionsData } = await this.makeUserQuestionsDbFormat(
-      queryKeywordQuestionPairsResult,
-      user_id
-    );
-    const [queryMakeUserQuestionsResult] = (await this.pool.query(
-      queryMakeUserQuestions,
-      [userQuestionsData]
-    )) as any;
-
-    return queryMakeUserQuestionsResult.affectedRows;
+  private async getQuestionIdsFromKeywordId(
+    keywordId: number
+  ): Promise<number[]> {
+    const query = `
+      SELECT question_id FROM KeywordsQuestions WHERE keyword_id = ?`;
+    const [result] = (await this.pool.query(query, [keywordId])) as any;
+    return result.map((row: any) => row.question_id);
   }
 
-  private async makeUserQuestionsDbFormat(
-    queryKeywordQuestionPairsResult: any,
-    user_id: number
-  ) {
-    const rows = [] as any;
-    queryKeywordQuestionPairsResult.map((row: any) =>
-      rows.push([user_id, row.question_id])
-    );
-    return { userQuestionsData: rows };
+  /**
+   * 질문리스트를 사용자별 UserQuestion에 저장한다.
+   * @param userId
+   * @param questionIds
+   * @returns {Boolean} 성공 여부
+   */
+  private async setUserQuestions(
+    userId: number,
+    questionIds: number[]
+  ): Promise<Boolean> {
+    try {
+      const formattedUserQuestions = questionIds.map((questionId) => [
+        userId,
+        questionId,
+      ]);
+      const queryMakeUserQuestions = `
+      INSERT INTO UserQuestion (user_id, question_id)
+      VALUES ?`;
+      const [queryMakeUserQuestionsResult] = (await this.pool.query(
+        queryMakeUserQuestions,
+        [formattedUserQuestions]
+      )) as any;
+
+      return true;
+    } catch (error) {
+      console.log(error);
+
+      return false;
+    }
   }
 }

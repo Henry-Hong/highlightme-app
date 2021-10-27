@@ -5,6 +5,7 @@ import { Logger } from "winston";
 
 import QuestionService from "../services/question";
 import { IUserInputDTO } from "../interfaces/IUser";
+import config from "../config";
 
 const route = Router();
 
@@ -18,14 +19,16 @@ export default (app: Router) => {
     const logger: Logger = Container.get("logger");
     logger.debug(`Calling POST '/api/questions', req.body: %o`, req.body);
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
-      const { user_keyword_id } = req.body;
+      const { user_id: userId } = (req.user as any) || {
+        user_id: config.constUserId,
+      };
+      const keywordId = parseInt(req.body.keywordId);
+
       const questionServiceInstance = Container.get(QuestionService);
-      const result = await questionServiceInstance.questionList(
-        parseInt(user_keyword_id),
-        parseInt(user_id)
-      );
-      return res.json(result).status(200);
+      const [statusCode, questions] =
+        await questionServiceInstance.loadQuestions(userId, keywordId);
+
+      return res.status(statusCode).json(questions);
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);
@@ -102,7 +105,7 @@ export default (app: Router) => {
 
         const questionServiceInstance = Container.get(QuestionService);
         const [statusCode, result] =
-          await questionServiceInstance.answerToQuestion(
+          await questionServiceInstance.answerQuestion(
             userId,
             questionId,
             keywordId,
