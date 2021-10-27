@@ -53,6 +53,20 @@ export default class questionService {
   }
 
   /**
+   * Q7 GET /api/questions/scrapped
+   * 키워드를 선택하면 해당하는 질문 목록과 그 질문들에 대한 사용자의 상태(좋아요, 싫어요 등)을 함께 보낸다
+   * @param {number} userId
+   * @param {number} keywordId
+   * @returns {Promise<[statusCode: number, questions?: IQuestion[]]>}
+   */
+  public async loadScrappedQuestions(
+    userId: number
+  ): Promise<[statusCode: number, questions?: IQuestion[]]> {
+    let userQuestions = await this.getScrappedUserQuestions(userId);
+    return [200, userQuestions];
+  }
+
+  /**
    * 해당 유저가 갖고 있는 모든 질문 관련 정보를 가져옴
    * @param {number} userId
    * @param {number[]} questionIds
@@ -70,6 +84,23 @@ export default class questionService {
     let [result] = (await this.pool.query(query, [userId, questionIds])) as any;
 
     // //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
+
+    return result.map(iDbQuestionToIQuestion);
+  }
+
+  /**
+   * 해당 유저가 갖고 있는 모든 질문 관련 정보를 가져옴
+   * @param {number} userId
+   * @param {number[]} questionIds
+   * @returns {IQuestion[]}
+   */
+  private async getScrappedUserQuestions(userId: number): Promise<IQuestion[]> {
+    const query = `
+      SELECT Q.question_id id, Q.content, UQ.answer, UQ.liked, UQ.disliked, UQ.scrapped, UQ.interview_listed interviewListed
+      FROM Question Q
+      INNER JOIN UserQuestion UQ ON Q.question_id = UQ.question_id
+      WHERE UQ.user_id = ? AND scrapped = 1`;
+    let [result] = (await this.pool.query(query, [userId])) as any;
 
     return result.map(iDbQuestionToIQuestion);
   }

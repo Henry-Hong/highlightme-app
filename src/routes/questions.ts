@@ -14,12 +14,12 @@ export default (app: Router) => {
   app.use("/questions", route);
 
   /**
-   * Q1 POST /api/questions
+   * Q1 GET /api/questions
    * 키워드를 선택하고, 해당 키워드에 대한 질문리스트들을 뿌려줄때!
    */
-  route.post("/", async (req: Request, res: Response, next: NextFunction) => {
+  route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug(`Calling POST '/api/questions', req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/questions', req.body: %o`, req.body);
     try {
       const { user_id: userId } = (req.user as any) || {
         user_id: config.constUserId,
@@ -36,6 +36,35 @@ export default (app: Router) => {
       return next(e);
     }
   });
+
+  /**
+   * Q7 GET /api/questions/scrapped
+   * 사용자의 스크랩한 질문들을 가져옴
+   */
+  route.get(
+    "/scrapped",
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get("logger");
+      logger.debug(
+        `Calling GET '/api/questions/scrapped', req.body: %o`,
+        req.body
+      );
+      try {
+        const { user_id: userId } = (req.user as any) || {
+          user_id: config.constUserId,
+        };
+
+        const questionServiceInstance = Container.get(QuestionService);
+        const [statusCode, questions] =
+          await questionServiceInstance.loadScrappedQuestions(userId);
+
+        return res.status(statusCode).json(questions);
+      } catch (e) {
+        logger.error("🔥 error: %o", e);
+        return next(e);
+      }
+    }
+  );
 
   /**
    * Q2 POST /api/questions/like
