@@ -9,7 +9,12 @@ import KeywordService from "../services/keyword";
 import { ICL } from "../interfaces/ICL";
 import { IQuestion } from "../interfaces/IQuestion";
 import { IKeyword } from "../interfaces/IKeyword";
-import { getRandomInt, parseObject } from "../utils/index";
+import {
+  iDbQuestionToIQuestion,
+  getRandomInt,
+  parseObject,
+} from "../utils/index";
+import { IDbQuestion } from "../interfaces/IDbQuestion";
 
 @Service()
 export default class questionService {
@@ -65,21 +70,8 @@ export default class questionService {
     let [result] = (await this.pool.query(query, [userId, questionIds])) as any;
 
     // //4. (이후) 자기소개서에서 어느부분에서 나왔는지에 대한 정보도 같이줘야된다
-    result = result.map((e: any) => {
-      return <IQuestion>{
-        id: e.id,
-        content: e.content,
-        answer: e.answer,
-        actions: {
-          liked: e.liked ? true : false,
-          disliked: e.disliked ? true : false,
-          scrapped: e.scrapped ? true : false,
-          interviewListed: e.interviewListed ? true : false,
-        },
-      };
-    });
 
-    return result;
+    return result.map(iDbQuestionToIQuestion);
   }
 
   private async getKeywordIdByUserKeywordId(
@@ -219,22 +211,21 @@ export default class questionService {
     let keywordIds = keywords.map((k) => k.id);
 
     // 2. UserKeyword 테이블에 방금 가져온 키워드와 겹치는 것을 가져옵니다.
-    const queryQuestion = `
-      SELECT Q.question_id questionId, T.keyword_id keywordId, Q.content FROM Question Q INNER JOIN (
+    const query = `
+      SELECT Q.question_id id, T.keyword_id keywordId, Q.content FROM Question Q INNER JOIN (
         SELECT question_id, keyword_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (
-        SELECT question_id FROM UserQuestion WHERE user_id = ?)) T ON Q.question_id = T.question_id`;
-    const [questionResult] = (await this.pool.query(queryQuestion, [
+        SELECT question_id FROM UserQuestion WHERE user_id = ?)) T ON Q.question_id = T.question_id
+        ORDER BY RAND() LIMIT 1`;
+    const [result] = (await this.pool.query(query, [
       keywordIds,
       userId,
     ])) as any;
 
-    if (questionResult && questionResult.length > 0) {
-      const randomIndex = getRandomInt(0, questionResult.length);
-      const result: IQuestion = questionResult[randomIndex];
-      return result;
-    } else {
-      return undefined;
-    }
+    if (!result) return undefined;
+
+    let tailQuestion = iDbQuestionToIQuestion(result[0]);
+    tailQuestion.keywordId = result[0].keywordId;
+    return tailQuestion;
   }
 
   private async getQuestionIdsFromKeywordId(

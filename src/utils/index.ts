@@ -1,3 +1,6 @@
+import { IDbQuestion } from "../interfaces/IDbQuestion";
+import { IQuestion } from "../interfaces/IQuestion";
+
 /**
  * Parse and copy object to new any typed obejct
  * @param object
@@ -39,4 +42,24 @@ export function getRandomInt(min: number, max: number) {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min; //최댓값은 제외, 최솟값은 포함
+}
+
+/**
+ * DB에서 가져온 질문 포맷을 반환 타입에 맞게 변환
+ * @param {IDbQuestion} dbQuestion
+ * @returns {IQuestion}
+ */
+export function iDbQuestionToIQuestion(dbQuestion: IDbQuestion): IQuestion {
+  return <IQuestion>{
+    id: dbQuestion.id,
+    content: dbQuestion.content,
+    answer: dbQuestion.answer,
+    keywordId: undefined,
+    actions: {
+      liked: dbQuestion.liked ? true : false,
+      disliked: dbQuestion.disliked ? true : false,
+      scrapped: dbQuestion.scrapped ? true : false,
+      interviewListed: dbQuestion.interviewListed ? true : false,
+    },
+  };
 }
