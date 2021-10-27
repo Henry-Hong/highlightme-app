@@ -13,17 +13,18 @@ import * as path from "path";
 const route = Router();
 
 export default (app: Router) => {
-  //localhost:3001/api/fieldsz
   app.use("/fields", route);
+
   const logger: Logger = Container.get("logger");
   const FieldServiceInstance = Container.get(FieldService);
 
-  //U5.1 GET localhost:3001/api/fields
+  /**
+   * U5.1 GET localhost:3001/api/fields
+   * 직무정보가 들어있는 static 파일 바로 제공
+   */
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
-    logger.debug(`Calling GET '/api/fields', req.body: %o`, req.body);
+    logger.debug(`Calling GET '/api/fields'`);
     try {
-      // const { user_id } = (req.user as any) || { user_id: 7 };
-      // const result = await FieldServiceInstance.getFieldsList(user_id);
       return res
         .status(200)
         .sendFile(path.join(__dirname, "../data/fields.json"));
@@ -33,17 +34,20 @@ export default (app: Router) => {
     }
   });
 
-  //U5.2 POST localhost:3001/api/fields
+  /**
+   * U5.2 POST localhost:3001/api/fields
+   * 유저의 직무정보 업로드 or 업데이트
+   */
   route.post("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling POST '/api/fields', req.body: %o`, req.body);
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
-      const { field_ids } = req.body;
-      const result = await FieldServiceInstance.createOrUpdateUserFields(
-        parseInt(user_id),
-        field_ids
+      const { user_id: userId } = (req.user as any) || { user_id: 7 };
+      const { fieldIds } = req.body;
+      const statusCode = await FieldServiceInstance.createOrUpdateUserFields(
+        userId,
+        fieldIds
       );
-      return res.json(result);
+      return res.sendStatus(statusCode);
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);
