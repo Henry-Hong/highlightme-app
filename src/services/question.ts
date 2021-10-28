@@ -199,6 +199,15 @@ export default class questionService {
     return result.affectedRows > 0 ? 200 : 400;
   }
 
+  private async getKeywordIds(
+    conn: mysql2.PoolConnection,
+    questionId: number
+  ): Promise<number[]> {
+    const query = `SELECT keyword_id FROM KeywordsQuestions WHERE question_id = ?`;
+    const [keywordIds] = (await conn.query(query, [questionId])) as any;
+    return keywordIds.map((e: any) => e.keyword_id);
+  }
+
   /**
    * Q5 POST /api/questions/answer
    * 특정 질문에 대해 답하기
@@ -210,36 +219,46 @@ export default class questionService {
   public async answerQuestion(
     userId: number,
     questionId: number,
-    keywordId: number,
     answer: string
   ): Promise<[statusCode: number, result?: IQuestion]> {
-    //1. userId + keywordId로 해당하는 userKeywordId 찾기
-    const querySelectUserKeywordId = `
-      SELECT user_keyword_id AS userKeywordId FROM UserKeyword
-      WHERE user_id = ? AND keyword_id = ? LIMIT 1`;
-    const [selectUserKeywordIdResult] = (await this.pool.query(
-      querySelectUserKeywordId,
-      [userId, keywordId]
-    )) as any;
-    let userKeywordId = selectUserKeywordIdResult[0].userKeywordId;
-
-    //1. 질문에 답했으면 해당키워드 업데이트하기
     const keywordServiceInstance = Container.get(KeywordService);
-    const isKeywordAnsweredUpdated =
-      await keywordServiceInstance.updateKeywordAnswered(userKeywordId);
-    if (!isKeywordAnsweredUpdated) return [400, undefined]; //Error Check
+    const conn = await this.pool.getConnection();
+    let tailQuestion;
 
-    //2. 질문에 대한 답변 DB에 넣기
-    const queryAnswerToQuestion = `
-      UPDATE UserQuestion SET answer = ?, modified_at = NOW() WHERE user_id = ? AND question_id = ?`;
-    const [queryAnswerToQuestionResult] = (await this.pool.query(
-      queryAnswerToQuestion,
-      [answer, userId, questionId]
-    )) as any;
-    if (!queryAnswerToQuestionResult.affectedRows) return [400, undefined]; //Error Check
+    try {
+      await conn.beginTransaction(); // START TRANSACTION
 
-    //3. 꼬리질문 생성하기
-    let tailQuestion = await this.getTailQuestion(userId, answer);
+      const keywordIds = await this.getKeywordIds(conn, questionId);
+
+      //1. 질문에 답했으면 해당키워드 업데이트하기
+      for (let keywordId of keywordIds) {
+        const isKeywordAnsweredUpdated =
+          await keywordServiceInstance.updateKeywordAnswered(
+            userId,
+            keywordId,
+            conn
+          );
+        if (!isKeywordAnsweredUpdated) return [400, undefined]; //Error Check
+      }
+
+      //2. 질문에 대한 답변 DB에 넣기
+      const queryAnswerToQuestion = `
+       UPDATE UserQuestion SET answer = ?, modified_at = NOW() WHERE user_id = ? AND question_id = ?`;
+      const [queryAnswerToQuestionResult] = (await conn.query(
+        queryAnswerToQuestion,
+        [answer, userId, questionId]
+      )) as any;
+      if (!queryAnswerToQuestionResult.affectedRows) return [400, undefined]; //Error Check
+
+      //3. 꼬리질문 생성하기
+      tailQuestion = await this.getTailQuestion(conn, userId, answer);
+      await conn.commit(); // COMMIT
+    } catch (err) {
+      await conn.rollback(); // ROLLBACK
+    } finally {
+      await conn.release();
+    }
+
     if (tailQuestion) {
       return [200, tailQuestion];
     } else {
@@ -275,6 +294,7 @@ export default class questionService {
    * @returns Promise<IQuestion | undefined>
    */
   private async getTailQuestion(
+    conn: mysql2.PoolConnection,
     userId: number,
     sentence: string
   ): Promise<IQuestion | undefined> {
@@ -289,10 +309,7 @@ export default class questionService {
         SELECT question_id, keyword_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (
         SELECT question_id FROM UserQuestion WHERE user_id = ?)) T ON Q.question_id = T.question_id
         ORDER BY RAND() LIMIT 1`;
-    const [result] = (await this.pool.query(query, [
-      keywordIds,
-      userId,
-    ])) as any;
+    const [result] = (await conn.query(query, [keywordIds, userId])) as any;
 
     if (!result) return undefined;
 

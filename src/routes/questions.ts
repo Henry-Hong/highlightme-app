@@ -155,7 +155,6 @@ export default (app: Router) => {
           await questionServiceInstance.answerQuestion(
             userId,
             questionId,
-            keywordId,
             answer
           );
 

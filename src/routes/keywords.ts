@@ -73,11 +73,13 @@ export default (app: Router) => {
       );
 
       try {
-        const { user_id } = (req.user as any) || { user_id: 7 };
-        const { user_keyword_id } = req.body;
+        const { user_id: userId } = (req.user as any) || { user_id: 7 };
+        const keywordId = parseInt(req.body.keywordId);
+
         const keywordServiceInstance = Container.get(KeywordService);
         const result = await keywordServiceInstance.updateKeywordAnswered(
-          parseInt(user_keyword_id)
+          userId,
+          keywordId
         );
 
         return res.json(result).status(200);

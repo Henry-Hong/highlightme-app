@@ -23,44 +23,37 @@ export default (app: Router) => {
     logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
 
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
-      const { CLES, cl_id, title, company, tags, comments } = req.body;
+      const { user_id: userId } = (req.user as any) || {
+        user_id: config.constUserId,
+      };
+      const { elements, title, company, tags, comments } = req.body;
       const clServiceInstance = Container.get(CLService);
       const result = await clServiceInstance.makeCLE(
-        CLES,
-        parseInt(cl_id),
-        parseInt(user_id),
+        elements,
+        userId,
         title,
         company,
         tags,
         comments
       );
       return res.status(200).json(result);
+      // return res.statusCode(statusCode);
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);
     }
   });
 
-  // function corsCheck(req : any, callback : any) {
-  // let corsOptions;
-  // const acceptList = ["https://www.hlight.me", "https://hlight.me", "http://localhost:3000"]
-  // if (acceptList.indexOf(req.header('Origin')) !== -1) {
-  //   corsOptions = { origin: true, credential: true };
-  // } else {
-  //   corsOptions = { origin: false };
-  // }
-  // callback(null, corsOptions);
-  // }
-
   //C2 GET localhost:3001/api/cls
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling GET '/api/cls', req.user: %o`, req.user);
 
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
+      const { user_id: userId } = (req.user as any) || {
+        user_id: config.constUserId,
+      };
       const clServiceInstance = Container.get(CLService);
-      const result = await clServiceInstance.getCLEsById(user_id);
+      const result = await clServiceInstance.getElements(userId);
       return res.status(200).json(result);
     } catch (e) {
       logger.error("🔥 error: %o", e);

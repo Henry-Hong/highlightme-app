@@ -7,7 +7,7 @@ import KeywordService from "../services/keyword";
 import QuestionService from "../services/question";
 
 import { ICL } from "../interfaces/ICL";
-import { ICLElementNode } from "../interfaces/ICLElementNode";
+import { ICLElement } from "../interfaces/ICLElement";
 import { addAbortSignal } from "stream";
 import Connection from "mysql/lib/Connection";
 import { parseObject } from "../utils";
@@ -20,132 +20,227 @@ export default class CLService {
   keywordServiceInstance = Container.get(KeywordService);
   questionServiceInstance = Container.get(QuestionService);
 
-  //TODO db:any 변수명 혼동
-  private compareCLE(front: ICLElementNode, db: any) {
-    if (front.problem == db.problem && front.answer == db.answer) return 1;
-    else return 0;
-  }
-
-  // C1 POST localhost:3001/api/cls
-  // 자기소개서항목 등록 & 수정 할때
+  /**
+   * C1 POST localhost:3001/api/cls
+   * 자기소개서항목 등록 & 수정 할때
+   * @param elements
+   * @param userId
+   * @param title
+   * @param company
+   * @param tags
+   * @param comments
+   * @returns
+   */
   public async makeCLE(
-    CLES: string,
-    cl_id: number,
-    user_id: number,
+    elements: string,
+    userId: number,
     title: string,
     company: string,
     tags: string,
     comments: string
-  ): Promise<object> {
-    let result = {} as any;
-    // CLES 파싱
-    let CLElements = JSON.parse(CLES);
-    let answerDatas: any[] = [];
+  ): Promise<number> {
     const connection = await this.pool.getConnection();
+    const clId = await this.getOrCreateCLId(userId);
+
+    let clesFromFront = JSON.parse(elements);
+    let toBeKeywordExtracted: string[] = [];
 
     try {
       await connection.beginTransaction(); // START TRANSACTION
-      
-      CLElements.map(async (cleFromFront: ICLElementNode) => {
-        const queryExistCLE = `
-        SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
-        const [cleFromDB] = (await connection.query(queryExistCLE, [
-          parseInt(cleFromFront.cl_element_id),
-          cl_id,
-        ])) as any;
+
+      // 프론트에서 요청받은 자기소개서 문항을 3가지로 분류한다.
+      // 1. 이미 존재하고 && 수정되지않은 자소서
+      // 2. 이미 존재하고 && 수정된 자소서 -> 새롭게 키워드 추출
+      // 3. 새로운 자소서 -> 새롭게 키워드 추출
+
+      for (let [idx, cleFromFront] of clesFromFront.entries()) {
+        const clElementId = idx + 1;
+        const cleFromDB = await this.getExistingCLE(
+          connection,
+          clElementId,
+          clId
+        );
+
         // 이미있는 자소서니까 UPDATE OR DoNothing
-        if (cleFromDB.length > 0) {
-          const isSameCLE = this.compareCLE(cleFromFront, cleFromDB[0]);
+        if (cleFromDB !== undefined) {
+          const isSameCLE = this.compareCLE(cleFromFront, cleFromDB);
           // 수정된 자소서라면
-          if (isSameCLE == 0) {
-            answerDatas.push(cleFromFront.answer);
-            // 업데이트 먼저 한다.
-            const queryCLEUpdate = `
-              UPDATE CLElement E SET E.problem=?, E.answer=?, E.modified_at=NOW() WHERE E.cl_element_id=? AND E.cl_id=?`;
-            const queryResult = (await connection.query(queryCLEUpdate, [
-              cleFromFront.problem,
-              cleFromFront.answer,
-              cleFromFront.cl_element_id,
-              cl_id,
-            ])) as any;
+          if (isSameCLE === true) {
+            // 새롭게 추출될 자기소개서문항을 저장.
+            toBeKeywordExtracted.push(cleFromFront.answer);
+
+            // 기존 자소서 수정.
+            const isSucesss = await this.updateExistingCLE(
+              connection,
+              cleFromFront,
+              clElementId,
+              clId
+            );
+            if (!isSucesss) return 500;
 
             // 기존 데이터를 삭제한다.
           }
           // 그대로인 자소서라면
-          else if (isSameCLE == 1) {
+          else if (isSameCLE === false) {
             // pass
           }
         }
         // 존재하지 않는 자소서니까 INSERT
         else {
-          // 새로운 자소서 INSERT
-          answerDatas.push(cleFromFront.answer);
-          const queryCLEInsert = `
-            INSERT INTO CLElement (cl_element_id, problem, answer, cl_id, public)
-            VALUES (?,?,?,?,1)`;
-          const queryResult = (await connection.query(queryCLEInsert, [
-            parseInt(cleFromFront.cl_element_id),
-            cleFromFront.problem,
-            cleFromFront.answer,
-            cl_id,
-          ])) as any;
+          // 새롭게 추출될 자기소개서문항을 저장.
+          toBeKeywordExtracted.push(cleFromFront.answer);
+
+          // 새로운 자소서 삽입.
+          const isSuccess = await this.insertNewCLE(
+            connection,
+            cleFromFront,
+            clElementId,
+            clId
+          );
+          if (!isSuccess) return 500;
         }
-      });
+      }
 
       await connection.commit(); // COMMIT
     } catch (err) {
-      console.log("rollback");
+      console.log("rollback processed when cl upload while transactioning");
       await connection.rollback(); // ROLLBACK
+      return 500;
     } finally {
-      // 키워드 분석 새롭게 한다.
-      if (answerDatas.length > 0) {
-        const putKeywordsInfoAfterCEResult =
-          (await this.keywordServiceInstance.putKeywordsInfoAfterCE(
-            user_id,
-            answerDatas
-          )) as any;
+      // 추출할게 있는경우에만 CE로 키워드 분석 요청
+      if (toBeKeywordExtracted.length > 0) {
+        try {
+          //나중에 이렇게 바궈야할듯
+          const isSuccess =
+            await this.keywordServiceInstance.extractKeywordsThroughCE(
+              userId,
+              toBeKeywordExtracted
+            );
+          if (!isSuccess) return 500;
+        } catch (error) {
+          throw error;
+        }
+
+        await connection.release();
       }
-      await connection.release();
+      // 추출할게 없는 경우는
+      else {
+        // do nothing
+      }
+      return 200;
     }
+  }
+
+  private compareCLE(front: ICLElement, db: any) {
+    if (front.problem == db.problem && front.answer == db.answer) return true;
+    else return false;
+  }
+
+  private async getExistingCLE(
+    conn: mysql2.PoolConnection,
+    clElementId: number,
+    clId: number
+  ) {
+    const query = `SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
+    const [result] = (await conn.query(query, [clElementId, clId])) as any;
+    return result[0];
+  }
+
+  private async updateExistingCLE(
+    connection: mysql2.PoolConnection,
+    cle: ICLElement,
+    clElementId: number,
+    clId: number
+  ): Promise<boolean> {
+    try {
+      const query = `
+        UPDATE CLElement AS E SET E.problem = ?, E.answer = ?, E.modified_at = NOW()
+        WHERE E.cl_element_id = ? AND E.cl_id = ?`;
+      await connection.query(query, [
+        cle.problem,
+        cle.answer,
+        clElementId,
+        clId,
+      ]);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private async insertNewCLE(
+    connection: mysql2.PoolConnection,
+    cle: ICLElement,
+    clElementId: number,
+    clId: number
+  ): Promise<boolean> {
+    try {
+      const query = `
+        INSERT INTO CLElement (cl_element_id, problem, answer, cl_id, public) VALUES (?,?,?,?,1)`;
+      await connection.query(query, [
+        clElementId,
+        cle.problem,
+        cle.answer,
+        clId,
+      ]);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * C2 GET localhost:3001/api/cls
+   * 자기소개서항목 & 주고받기 정보 내놓으라할때
+   * @param userId
+   * @returns
+   */
+  public async getElements(userId: number): Promise<object> {
+    // 1. GET clId from userId
+    const clId = await this.getOrCreateCLId(userId);
+
+    // 2. GET elements from clId
+    const queryElements = `
+      SELECT problem, answer, public as _public FROM CLElement WHERE cl_id = ?`;
+    let [elements] = (await this.pool.query(queryElements, [clId])) as any;
+    // 변환작업
+    elements = elements.map((e: any) => {
+      e._public = e._public ? true : false;
+      return e;
+    });
+
+    // 3. GET 주고받기정보 from CL table
+    const queryUserCL = `
+      SELECT title, company, tags, comments FROM CL WHERE user_id = ?`;
+    const [userCL] = (await this.pool.query(queryUserCL, [userId])) as any;
+    const CL: ICL = parseObject(userCL[0]);
+
     return {
-      result: 1,
+      elements: elements,
+      company: CL.company,
+      title: CL.title,
+      tags: CL.tags,
+      comments: CL.comments,
     };
   }
 
-  // C2 GET localhost:3001/api/cls
-  // 자기소개서항목 & 주고받기 정보 내놓으라할때
-  public async getCLEsById(user_id: number): Promise<object> {
-    // 먼저, cl_id 관련된 정보가 있으면 불러오고 없으면 만든다.
-    const { cl_id, isNew } = await this.getOrCreateCLId(user_id);
-    const queryGetCLEs = `
-      SELECT * FROM CLElement WHERE cl_id = ?`;
-    const [queryGetCLEsResult] = await this.pool.query(queryGetCLEs, [cl_id]);
-    return { isNew: isNew, cl_id: cl_id, cles: queryGetCLEsResult };
-  }
+  private async getOrCreateCLId(userId: any) {
+    // 사용자의 clId를 받아온다.
+    const clId = await this.getCLIdFromUserId(userId);
 
-  private async getOrCreateCLId(user_id: any) {
-    //디비를 거쳐서 cl_id를 가져온다.
-    const { cl_id } = (await this.getCLIdFromUserId(user_id)) as any;
+    // clId가 없으면 유저의 clId정보를 만든다.
+    if (!clId) {
+      // 인성질문 추가해두기
+      await this.keywordServiceInstance.putPersonalityKeywords(userId);
 
-    //빈객체이면 유저의 cl_id정보를 만든다.
-    if (cl_id == -1) {
-      const personalityKeywordsResult =
-        await this.keywordServiceInstance.putPersonalityKeywords(user_id);
-
-      const queryClInitialize = `
-        INSERT INTO CL (user_id, title, company, tags, comment, view_num, user_question_num, created_at)
+      // 새롭게 만들어서 리턴한다.
+      const query = `
+        INSERT INTO CL (user_id, title, company, tags, comments, view_num, user_question_num, created_at)
         VALUES (?, "init", "init", "init", "init", 0, 0, NOW())`;
-      const [queryClInitializeResult] = (await this.pool.query(
-        queryClInitialize,
-        [user_id]
-      )) as any;
-      return {
-        cl_id: queryClInitializeResult.insertId,
-        isNew: 1,
-        personalityKeywordsResult: personalityKeywordsResult,
-      };
+      const [result] = (await this.pool.query(query, [userId])) as any;
+      return result.insertId;
     } else {
-      return { cl_id: cl_id, isNew: 0 };
+      return clId;
     }
   }
 
@@ -195,7 +290,7 @@ export default class CLService {
     user_id: number
   ): Promise<object> {
     //디비를 거쳐서 cl_id를 가져온다.
-    const { cl_id } = (await this.getCLIdFromUserId(user_id)) as any;
+    const cl_id = await this.getCLIdFromUserId(user_id);
 
     let result = {} as any;
 
@@ -221,16 +316,13 @@ export default class CLService {
     return result;
   }
 
-  private async getCLIdFromUserId(user_id: number) {
-    const queryGetCLIdFromUserId = `
+  private async getCLIdFromUserId(userId: number): Promise<number> {
+    const query = `
       SELECT cl_id FROM CL WHERE user_id = ? LIMIT 1`;
-    const [queryGetCLIdFromUserIdResult] = (await this.pool.query(
-      queryGetCLIdFromUserId,
-      [user_id]
-    )) as any;
-
-    if (queryGetCLIdFromUserIdResult.length == 0) return { cl_id: -1 };
-    else return queryGetCLIdFromUserIdResult[0];
+    const [result] = (await this.pool.query(query, [userId])) as any;
+    // 없으면 return clId = 0
+    let clId = 0;
+    return result.length === 0 ? (clId = 0) : (clId = result[0].cl_id);
   }
 }
 
