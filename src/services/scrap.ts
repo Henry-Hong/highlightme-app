@@ -7,7 +7,6 @@ import KeywordService from "./keyword";
 import QuestionService from "./question";
 
 import { ICL } from "../interfaces/ICL";
-import { ICLElementNode } from "../interfaces/ICLElementNode";
 import { addAbortSignal } from "stream";
 
 @Service()
@@ -50,7 +49,6 @@ export default class ScrapService {
   public async getScrapList(user_id: number): Promise<object> {
     let result = {} as any;
     const conenction = await this.pool.getConnection();
-
 
     try {
       await conenction.beginTransaction();

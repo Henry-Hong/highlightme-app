@@ -28,7 +28,7 @@ export default (app: Router) => {
       };
       const { elements, title, company, tags, comments } = req.body;
       const clServiceInstance = Container.get(CLService);
-      const result = await clServiceInstance.makeCLE(
+      const statusCode = await clServiceInstance.makeCLE(
         elements,
         userId,
         title,
@@ -36,8 +36,8 @@ export default (app: Router) => {
         tags,
         comments
       );
-      return res.status(200).json(result);
-      // return res.statusCode(statusCode);
+      // return res.status(200).json(result);
+      return res.sendStatus(statusCode);
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);
@@ -66,14 +66,16 @@ export default (app: Router) => {
     logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
 
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
-      const { cl_element_id } = req.body;
+      const { user_id: userId } = (req.user as any) || {
+        user_id: config.constUserId,
+      };
+      const { index } = req.body;
       const clServiceInstance = Container.get(CLService);
-      const result = await clServiceInstance.deleteCLE(
-        parseInt(cl_element_id),
-        parseInt(user_id)
+      const statusCode = await clServiceInstance.deleteCLE(
+        parseInt(index),
+        userId
       );
-      return res.status(200).json(result);
+      return res.sendStatus(statusCode);
     } catch (e) {
       logger.error("🔥 error: %o", e);
       return next(e);

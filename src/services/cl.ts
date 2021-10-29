@@ -52,7 +52,6 @@ export default class CLService {
       // 1. 이미 존재하고 && 수정되지않은 자소서
       // 2. 이미 존재하고 && 수정된 자소서 -> 새롭게 키워드 추출
       // 3. 새로운 자소서 -> 새롭게 키워드 추출
-
       for (let [idx, cleFromFront] of clesFromFront.entries()) {
         const clElementId = idx + 1;
         const cleFromDB = await this.getExistingCLE(
@@ -200,8 +199,7 @@ export default class CLService {
     const clId = await this.getOrCreateCLId(userId);
 
     // 2. GET elements from clId
-    const queryElements = `
-      SELECT problem, answer, public as _public FROM CLElement WHERE cl_id = ?`;
+    const queryElements = `SELECT problem, answer, public as _public FROM CLElement WHERE cl_id = ?`;
     let [elements] = (await this.pool.query(queryElements, [clId])) as any;
     // 변환작업
     elements = elements.map((e: any) => {
@@ -244,76 +242,37 @@ export default class CLService {
     }
   }
 
-  private async deleteAllCLERelated(
-    cl_element_id: number,
-    cl_id: number,
-    user_id: number
-  ) {
-    const connection = await this.pool.getConnection();
-    try {
-      await connection.beginTransaction(); // START TRANSACTION
+  /**
+   * C3 DELETE localhost:3001/api/cls
+   * 자기소개서항목 삭제
+   * @param index
+   * @param userId
+   * @returns
+   */
+  public async deleteCLE(index: number, userId: number): Promise<number> {
+    // 1. get clId
+    const clId = await this.getCLIdFromUserId(userId);
 
-      // 1. 키워드정보
-      // user_id, cl_element_id
-      const queryDeleteUserKeywords = `
-      DELETE 
-      FROM UserKeywords
-      JOIN 
-      WHERE cl_element_id=? AND user_id=?`;
-      const [resultDeleteUserKeywords] = await connection.query(
-        queryDeleteUserKeywords,
-        [cl_element_id, user_id]
-      );
+    // 2-1. delete coverletter element
+    const queryDelete = `DELETE FROM CLElement WHERE cl_element_id = ? AND cl_id = ?`;
+    const [resultDelete] = (await this.pool.query(queryDelete, [
+      index,
+      clId,
+    ])) as any;
+    if (resultDelete.affectedRows === 0) return 400;
 
-      // 2. 질문정보
-      const queryDeleteUserQuestions = `
-      DELETE FROM UserQuestion WHERE user_id = ?`;
-      const [resultDeleteUserQuestions] = await connection.query(
-        queryDeleteUserKeywords,
-        [cl_element_id, user_id]
-      );
+    // 2-2. arrange order of exsting elements
+    const queryRearrangeCLE = `UPDATE CLElement SET cl_element_id = cl_element_id - 1 WHERE cl_id = ? AND cl_element_id > ?`;
+    const [resultRearrange] = (await this.pool.query(queryRearrangeCLE, [
+      clId,
+      index,
+    ])) as any;
+    if (resultRearrange.affectedRows === 0) return 400;
 
-      await connection.commit(); // COMMIT
-    } catch (err) {
-      await connection.rollback(); // ROLLBACK
-    } finally {
-      await connection.release(); // RELEASE
-    }
+    // 3. element 삭제 -> user keyword[] 삭제 -> fromCL[] 삭제
+    // 근데 user keyword 를 삭제하는 과정이 복잡. 비정규화로 가고싶구나~
 
-    // 3. FromCL정보
-  }
-
-  // C3 DELETE localhost:3001/api/cls
-  // 자기소개서항목 삭제
-  public async deleteCLE(
-    cl_element_id: number,
-    user_id: number
-  ): Promise<object> {
-    //디비를 거쳐서 cl_id를 가져온다.
-    const cl_id = await this.getCLIdFromUserId(user_id);
-
-    let result = {} as any;
-
-    const queryDeleteCLElement = `
-        DELETE FROM CLElement WHERE cl_element_id=? AND cl_id=?`;
-    const [queryDeleteCLElementResult] = await this.pool.query(
-      queryDeleteCLElement,
-      [cl_element_id, cl_id]
-    );
-    const queryDeleteCLElementResultParse = parseObject(
-      queryDeleteCLElementResult
-    );
-    if (queryDeleteCLElementResultParse.affectedRows === 1)
-      result.isDeleted = true;
-    else result.isDeleted = false;
-
-    const queryRearrangeOrder = `
-      UPDATE CLElement SET cl_element_id = cl_element_id - 1 WHERE cl_id = ? AND cl_element_id > ?`;
-    const [queryRearrangeOrderResult] = await this.pool.query(
-      queryRearrangeOrder,
-      [cl_id, cl_element_id]
-    );
-    return result;
+    return 200;
   }
 
   private async getCLIdFromUserId(userId: number): Promise<number> {
