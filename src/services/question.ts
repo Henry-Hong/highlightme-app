@@ -279,12 +279,10 @@ export default class questionService {
       elements: JSON.stringify([sentence]),
     });
 
-    let keywords: IKeyword[][] = parseObject(res.data);
-    if (keywords && keywords[0] && keywords[0].length > 0) {
-      return keywords[0]; //cles 요청이었기 때문에 첫번째 항목만 담겨서 올것임
-    } else {
-      return undefined;
-    }
+    let keywords: IKeyword[] = parseObject(res.data);
+    //cles 요청이었기 때문에 첫번째 항목만 담겨서 올것임
+    if (keywords && keywords[0]) return keywords;
+    else return undefined;
   }
 
   /**
