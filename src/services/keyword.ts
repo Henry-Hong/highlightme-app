@@ -7,6 +7,7 @@ import axios from "axios";
 import LoggerInstance from "../loaders/logger";
 import QuestionService from "../services/question";
 import { parseObject, isArrayEmpty } from "../utils";
+import { triggerAsyncId } from "async_hooks";
 
 @Service()
 export default class KeywordService {
@@ -24,6 +25,11 @@ export default class KeywordService {
     userId: number
   ): Promise<[statusCode: number, keywords?: IKeyword[]]> {
     try {
+      // 만약 아무런 유저키워드가 없다면,
+      if (await this.isNotUserHasPersonalKeyword(userId)) {
+        const isSuccess = await this.putPersonalityKeywords(userId);
+        if (!isSuccess) return [500];
+      }
       const query = `
         SELECT
         K.keyword_id as keywordId, K.keyword,
@@ -32,18 +38,19 @@ export default class KeywordService {
         INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? AND is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
       const [result] = (await this.pool.query(query, [userId])) as any;
 
-      // 만약 아무런 유저키워드가 없다면,
-      if (isArrayEmpty(result)) {
-        const isSuccess = await this.putPersonalityKeywords(userId);
-        if (!isSuccess) return [500];
-        return [201, result]; // new contents created!
-      }
-
       return [200, result]; //success
     } catch (error) {
       console.log(error);
       return [500]; //fail
     }
+  }
+
+  private async isNotUserHasPersonalKeyword(userId: number): Promise<boolean> {
+    const ids = this.getPersonalityKeywordsData().map((e) => e[0]);
+    const query = `SELECT UK.user_keyword_id FROM UserKeyword UK WHERE UK.user_id = ? AND UK.keyword_id IN (?)`;
+    const [result] = (await this.pool.query(query, [userId, ids])) as any;
+    if (!result.length) return true;
+    return false;
   }
 
   /**
@@ -246,7 +253,7 @@ export default class KeywordService {
     }
   }
 
-  private getPersonalityKeywordsData(userId: number) {
+  private getPersonalityKeywordsData(userId?: number) {
     return [
       [2271, userId, 0, 0, 1],
       [2280, userId, 0, 0, 1],

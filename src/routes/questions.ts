@@ -19,14 +19,12 @@ export default (app: Router) => {
    */
   route.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get("logger");
-    logger.debug(`Calling GET '/api/questions', req.params: %o`, req.params);
+    logger.debug(`Q1 GET '/api/questions'`);
     try {
       const { user_id: userId } = (req.user as any) || {
         user_id: config.constUserId,
       };
       const keywordId = parseInt(req.query.keywordId as string);
-
-      console.log("asdf" + keywordId);
 
       const questionServiceInstance = Container.get(QuestionService);
       const [statusCode, questions] =
@@ -47,10 +45,7 @@ export default (app: Router) => {
     "/scrapped",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(
-        `Calling GET '/api/questions/scrapped', req.params: %o`,
-        req.params
-      );
+      logger.debug(`Q7 GET '/api/questions/scrapped'`);
       try {
         const { user_id: userId } = (req.user as any) || {
           user_id: config.constUserId,
@@ -76,10 +71,7 @@ export default (app: Router) => {
     "/like",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(
-        `Calling POST "/api/questions/like", req.body: %o`,
-        req.body
-      );
+      logger.debug(`Q2 POST "/api/questions/like", req.body: %o`, req.body);
       try {
         const { user_id: userId } = (req.user as any) || {
           user_id: config.constUserId,
@@ -108,10 +100,7 @@ export default (app: Router) => {
     "/dislike",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(
-        `Calling POST "/api/questions/dislike", req.body: %o`,
-        req.body
-      );
+      logger.debug(`Q3 POST "/api/questions/dislike", req.body: %o`, req.body);
       try {
         const { user_id: userId } = (req.user as any) || {
           user_id: config.constUserId,
@@ -140,10 +129,7 @@ export default (app: Router) => {
     "/answer",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(
-        `Calling POST '/api/questions/answer', req.body: %o`,
-        req.body
-      );
+      logger.debug(`Q5 POST '/api/questions/answer', req.body: %o`, req.body);
       try {
         const { user_id: userId } = (req.user as any) || { user_id: 7 }; //TODO as any로 하지말고, Interface를 추가
         const questionId: number = parseInt(req.body.questionId);
@@ -174,10 +160,7 @@ export default (app: Router) => {
     "/scrap",
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
-      logger.debug(
-        `Calling POST "/api/questions/scrap", req.body: %o`,
-        req.body
-      );
+      logger.debug(`Q4 POST "/api/questions/scrap", req.body: %o`, req.body);
       try {
         const { user_id: userId } = (req.user as any) || {
           user_id: config.constUserId,
@@ -207,7 +190,7 @@ export default (app: Router) => {
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get("logger");
       logger.debug(
-        `Calling POST "/api/questions/interviewListed", req.body: %o`,
+        `Q6 POST "/api/questions/interviewListed", req.body: %o`,
         req.body
       );
       try {
