@@ -31,6 +31,14 @@ export default class KeywordService {
         FROM Keyword K
         INNER JOIN (SELECT * FROM UserKeyword WHERE user_id = ? AND is_ready = 1) UK ON K.keyword_id = UK.keyword_id`;
       const [result] = (await this.pool.query(query, [userId])) as any;
+
+      // 만약 아무런 유저키워드가 없다면,
+      if (isArrayEmpty(result)) {
+        const isSuccess = await this.putPersonalityKeywords(userId);
+        if (!isSuccess) return [500];
+        return [201, result]; // new contents created!
+      }
+
       return [200, result]; //success
     } catch (error) {
       console.log(error);
@@ -224,17 +232,22 @@ export default class KeywordService {
     );
   }
 
-  public async putPersonalityKeywords(userId: number) {
-    const query = `
+  public async putPersonalityKeywords(userId: number): Promise<boolean> {
+    try {
+      const query = `
       INSERT INTO UserKeyword(keyword_id, user_id, answered, from_cl, is_ready)
       VALUES ?`;
-    const data = this.getPersonalityKeywordsData(userId);
-    const [result] = (await this.pool.query(query, [data])) as any;
-    return result.message;
+      const data = this.getPersonalityKeywordsData(userId);
+      await this.pool.query(query, [data]);
+      return true;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
   }
 
   private getPersonalityKeywordsData(userId: number) {
-    let rows = [
+    return [
       [2271, userId, 0, 0, 1],
       [2280, userId, 0, 0, 1],
       [2289, userId, 0, 0, 1],
@@ -243,6 +256,5 @@ export default class KeywordService {
       [2317, userId, 0, 0, 1],
       [2336, userId, 0, 0, 1],
     ];
-    return rows;
   }
 }

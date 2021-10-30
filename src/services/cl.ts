@@ -228,9 +228,6 @@ export default class CLService {
 
     // clId가 없으면 유저의 clId정보를 만든다.
     if (!clId) {
-      // 인성질문 추가해두기
-      await this.keywordServiceInstance.putPersonalityKeywords(userId);
-
       // 새롭게 만들어서 리턴한다.
       const query = `
         INSERT INTO CL (user_id, title, company, tags, comments, view_num, user_question_num, created_at)
