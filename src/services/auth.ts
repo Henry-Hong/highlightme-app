@@ -4,15 +4,15 @@ import mysql2 from "mysql2/promise";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { parseObject } from "../utils";
+import { parseObject, isArrayEmpty } from "../utils";
+import { IUser } from "../interfaces/IUser";
 
 export default () => {
   passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
-    console.log("serializeUser", user);
     if (user.provider == "google") {
-      done(undefined, { user_id: user.user_id }); //세션에 자동 저장
+      done(undefined, { userId: user.userId, email: user.email }); //세션에 자동 저장
     } else {
-      done(undefined, { user_id: user.user_id });
+      done(undefined, { userId: user.userId, email: user.email });
     }
     // 다른 oauth 등록 하려면 console.log(user) 먼저 해보기!
     // else if (user.provider == "kakao") {
@@ -21,12 +21,14 @@ export default () => {
   });
 
   passport.deserializeUser(
-    (user_id: any, done: (err: any, user: any) => void) => {
+    (user: IUser, done: (err: any, user: any) => void) => {
       // UserCollection.findById(id, (err: Error, user: UserDocument) => {
       //   done(err, user);
       // });
-      console.log("deserializeUser", user_id);
-      done(undefined, user_id);
+      console.log(
+        `### (${user.userId}) ${user.email}" is using the service ###`
+      );
+      done(undefined, user);
     }
   );
 
@@ -103,36 +105,25 @@ export default () => {
         const pool = Container.get<mysql2.Pool>("pool");
         const provider = "google-local"; //프론트에서 구글, 백엔드에서 로컬
         try {
-          const queryUserExist = "SELECT * FROM User WHERE email=(?)";
-          const [userExistResult] = await pool.query(queryUserExist, [email]);
-          const [userExistResultParse] = parseObject(userExistResult);
-          let user_id = userExistResultParse?.user_id;
+          const sql = "SELECT * FROM User WHERE email = ? LIMIT 1";
+          const [result] = (await pool.query(sql, [email])) as any;
 
           // 회원가입절차 진행
-          if (!userExistResultParse) {
+          if (isArrayEmpty(result)) {
             //회원가입코드 findOrCreate
-            const queryCreateUser = `
+            const sql = `
               INSERT INTO User (email, password, nickname, role_type, create_at, modified_at)
               VALUES(?,?,?,?,NOW(),NOW())`;
-            const [createUserResult] = await pool.query(queryCreateUser, [
-              email,
-              googleId,
-              "",
-              "2",
-            ]);
-            const createUserResultParse = parseObject(createUserResult);
-            if (user_id === undefined) user_id = createUserResultParse.insertId;
+            const [result] = await pool.query(sql, [email, googleId, "", "2"]);
+            const pResult = parseObject(result);
+            const userId = pResult.insertId;
 
-            return done(null, {
-              user_id,
-              googleId,
-              email,
-              isNew: true,
-            });
+            return done(null, { userId, email });
           }
 
           //이미 존재하는 계정의 경우, 로그인진행
-          return done(null, { user_id, googleId, email, isNew: false });
+          const userId = result[0].user_id;
+          return done(null, { userId, email });
         } catch (error: any) {
           return done(error);
         }

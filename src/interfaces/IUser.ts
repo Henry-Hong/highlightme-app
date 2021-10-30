@@ -1,13 +1,13 @@
-export interface IUser {
-  _id: string;
-  nickname: string;
-  email: string;
-  password: string;
-  salt: string;
-}
+// export interface IUser {
+//   _id: string;
+//   nickname: string;
+//   email: string;
+//   password: string;
+//   salt: string;
+// }
 
-export interface IUserInputDTO {
-  nickname: string;
+export interface IUser {
+  userId: number;
   email: string;
-  password: string;
+  provider?: string;
 }

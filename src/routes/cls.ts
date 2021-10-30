@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 
 import CLService from "../services/cl";
 import config from "../config";
-import { IUserInputDTO } from "../interfaces/IUser";
+import { IUser } from "../interfaces/IUser";
 import { resourceLimits } from "worker_threads";
 import TestService from "../services/test";
 import KeywordService from "../services/keyword";
@@ -23,9 +23,8 @@ export default (app: Router) => {
     logger.debug(`Calling POST '/api/cls', req.body: %o`, req.body);
 
     try {
-      const { user_id: userId } = (req.user as any) || {
-        user_id: config.constUserId,
-      };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
+
       const { elements, title, company, tags, comments } = req.body;
       const clServiceInstance = Container.get(CLService);
       const statusCode = await clServiceInstance.makeCLE(
@@ -49,9 +48,7 @@ export default (app: Router) => {
     logger.debug(`Calling GET '/api/cls', req.user: %o`, req.user);
 
     try {
-      const { user_id: userId } = (req.user as any) || {
-        user_id: config.constUserId,
-      };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const clServiceInstance = Container.get(CLService);
       const result = await clServiceInstance.getElements(userId);
       return res.status(200).json(result);
@@ -66,9 +63,7 @@ export default (app: Router) => {
     logger.debug(`Calling DELETE '/api/cls', req.body: %o`, req.body);
 
     try {
-      const { user_id: userId } = (req.user as any) || {
-        user_id: config.constUserId,
-      };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const { index } = req.body;
       const clServiceInstance = Container.get(CLService);
       const statusCode = await clServiceInstance.deleteCLE(
