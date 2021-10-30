@@ -5,28 +5,30 @@ import { celebrate, Joi } from "celebrate";
 import { Logger, loggers } from "winston";
 
 import UserService from "../services/user";
-import { IUserInputDTO } from "../interfaces/IUser";
+import { IUser } from "../interfaces/IUser";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import passportConfig from "../services/auth";
+import { parseObject } from "../utils";
 
 const route = Router();
 
 export default (app: Router) => {
   app.use("/users", route);
   const logger: Logger = Container.get("logger");
-  const cloneObj = (o: any) => JSON.parse(JSON.stringify(o));
-  // passportConfig();
 
-  //구글 간편 로그인 하는곳
+  /**
+   * 구글 간편 로그인 하는곳
+   * 1. GET "/oauth/google"로 요청시, Oauth화면 뜸
+   * 2. Oauth 화면에서 아디, 비번치면 자동으로
+   * 3. GET "/oauth/google/callback"로 요청
+   * 4. 패스포트 라이브러리가 알아서 로그인해주고 세션저장까지해줌
+   */
   route.get(
     "/oauth/google",
     (req, res, next) => {
-      logger.debug(
-        `Calling GET '/api/users/oauth/google', req.body: %o`,
-        req.body
-      );
+      logger.debug(`Calling GET '/users/oauth/google', req.body: %o`, req.body);
       next();
     },
     passport.authenticate("google", { scope: ["profile", "email"] })
@@ -47,14 +49,16 @@ export default (app: Router) => {
     }
   );
 
-  //프론트에서 구글로그인, 백엔드에서 로컬하는부분!
-  //{ user_id, googleId, email, isNew: true }
-
+  /**
+   * 구글 - 로컬 로그인
+   * 프론트에서 구글로그인을하고 아이디 비번(=구글아이디) 값을 백엔드로전송후,
+   * 따라서 실제 로컬로그인처럼 백엔드에서 작동
+   */
   route.post(
     "/oauth/google",
     (req, res, next) => {
       logger.debug(
-        `Calling POST '/api/users/oauth/google', req.body: %o`,
+        `Calling POST '/users/oauth/google', req.body: %o`,
         req.body
       );
       next();
@@ -63,14 +67,7 @@ export default (app: Router) => {
       failureRedirect: "/fail",
     }),
     (req, res) => {
-      let obj = cloneObj(req.user);
-      if (obj.isNew === true) {
-        // 회원가입한경우
-        res.status(200).json(req.user);
-      } else {
-        // 로그인한경우
-        res.status(409).json(req.user);
-      }
+      res.status(200).json(req.user);
     }
   );
 
@@ -78,6 +75,7 @@ export default (app: Router) => {
     logger.debug(`Calling GET '/api/users/logout', req.body: %o`, req.body);
 
     if (req.user) {
+      console.log("req.user", req.user);
       console.log("어떤친구가 로그아웃함!");
       req.logout(); //로그아웃하고
       res.status(200).send("logout success");
@@ -85,12 +83,6 @@ export default (app: Router) => {
       console.log("잘못된 요청입니다!");
       res.status(401).send("logout fail");
     }
-  });
-
-  route.get("/login", (req, res) => {
-    const logger: Logger = Container.get("logger");
-    logger.debug("get요청 어케엮노");
-    // res.send("로그인페이지 보여주면됨")
   });
 
   // route.post(

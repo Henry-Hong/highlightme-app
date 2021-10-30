@@ -4,7 +4,7 @@ import { celebrate, Joi, Segments } from "celebrate";
 import { Logger } from "winston";
 
 import QuestionService from "../services/question";
-import { IUserInputDTO } from "../interfaces/IUser";
+import { IUser } from "../interfaces/IUser";
 import config from "../config";
 
 const route = Router();
@@ -21,9 +21,7 @@ export default (app: Router) => {
     const logger: Logger = Container.get("logger");
     logger.debug(`Q1 GET '/api/questions'`);
     try {
-      const { user_id: userId } = (req.user as any) || {
-        user_id: config.constUserId,
-      };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const keywordId = parseInt(req.query.keywordId as string);
 
       const questionServiceInstance = Container.get(QuestionService);
@@ -47,8 +45,8 @@ export default (app: Router) => {
       const logger: Logger = Container.get("logger");
       logger.debug(`Q7 GET '/api/questions/scrapped'`);
       try {
-        const { user_id: userId } = (req.user as any) || {
-          user_id: config.constUserId,
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
         };
 
         const questionServiceInstance = Container.get(QuestionService);
@@ -73,8 +71,8 @@ export default (app: Router) => {
       const logger: Logger = Container.get("logger");
       logger.debug(`Q2 POST "/api/questions/like", req.body: %o`, req.body);
       try {
-        const { user_id: userId } = (req.user as any) || {
-          user_id: config.constUserId,
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
         };
         const questionId = parseInt(req.body.questionId);
 
@@ -102,8 +100,8 @@ export default (app: Router) => {
       const logger: Logger = Container.get("logger");
       logger.debug(`Q3 POST "/api/questions/dislike", req.body: %o`, req.body);
       try {
-        const { user_id: userId } = (req.user as any) || {
-          user_id: config.constUserId,
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
         };
         const questionId = parseInt(req.body.questionId);
 
@@ -131,7 +129,9 @@ export default (app: Router) => {
       const logger: Logger = Container.get("logger");
       logger.debug(`Q5 POST '/api/questions/answer', req.body: %o`, req.body);
       try {
-        const { user_id: userId } = (req.user as any) || { user_id: 7 }; //TODO as any로 하지말고, Interface를 추가
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
+        }; //TODO as any로 하지말고, Interface를 추가
         const questionId: number = parseInt(req.body.questionId);
         const keywordId: number = parseInt(req.body.keywordId);
         const answer: string = req.body.answer;
@@ -162,8 +162,8 @@ export default (app: Router) => {
       const logger: Logger = Container.get("logger");
       logger.debug(`Q4 POST "/api/questions/scrap", req.body: %o`, req.body);
       try {
-        const { user_id: userId } = (req.user as any) || {
-          user_id: config.constUserId,
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
         };
         const questionId = parseInt(req.body.questionId);
 
@@ -194,8 +194,8 @@ export default (app: Router) => {
         req.body
       );
       try {
-        const { user_id: userId } = (req.user as any) || {
-          user_id: config.constUserId,
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
         };
         const questionId = parseInt(req.body.questionId);
 

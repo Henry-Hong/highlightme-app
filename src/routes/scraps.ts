@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 
 import CLService from "../services/cl";
 import config from "../config";
-import { IUserInputDTO } from "../interfaces/IUser";
+import { IUser } from "../interfaces/IUser";
 import { resourceLimits } from "worker_threads";
 import TestService from "../services/test";
 import KeywordService from "../services/keyword";
@@ -26,7 +26,7 @@ export default (app: Router) => {
     logger.debug(`POST '/api/scraps', req.body: %o`, req.body);
 
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const { user_question_id, user_chain_question_id, question_id } =
         req.body;
       const scrapServiceInstance = Container.get(ScrapService);
@@ -34,7 +34,7 @@ export default (app: Router) => {
         user_chain_question_id,
         user_question_id,
         question_id,
-        user_id
+        userId
       );
       return res.status(200).json(result);
     } catch (e) {
@@ -49,9 +49,9 @@ export default (app: Router) => {
     logger.debug(`GET '/api/scraps', req.user: %o`, req.user);
 
     try {
-      const { user_id } = (req.user as any) || { user_id: 7 };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const scrapServiceInstance = Container.get(ScrapService);
-      const result = await scrapServiceInstance.getScrapList(user_id);
+      const result = await scrapServiceInstance.getScrapList(userId);
       return res.status(200).json(result);
     } catch (e) {
       logger.error("🔥 error: %o", e);

@@ -9,6 +9,7 @@ import config from "../config";
 
 import * as fs from "fs";
 import * as path from "path";
+import { IUser } from "../interfaces/IUser";
 
 const route = Router();
 
@@ -41,7 +42,7 @@ export default (app: Router) => {
   route.post("/", async (req: Request, res: Response, next: NextFunction) => {
     logger.debug(`Calling POST '/api/fields', req.body: %o`, req.body);
     try {
-      const { user_id: userId } = (req.user as any) || { user_id: 7 };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const { fieldIds } = req.body;
       const statusCode = await FieldServiceInstance.createOrUpdateUserFields(
         userId,

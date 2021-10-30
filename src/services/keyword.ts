@@ -144,6 +144,8 @@ export default class KeywordService {
 
       // 1. 코어엔진에게 키워드 추출 요청
       let ceResult: IKeyword[] = [];
+      let filterResult: IKeyword[] = [];
+
       await axios
         .post(config.ceServerURL + "/ce/keywords", {
           elements: JSON.stringify(elements),
@@ -155,18 +157,19 @@ export default class KeywordService {
           console.log("CE로 분석요청후 에러가났어욤");
           throw error;
         });
+
       // 만약 추출된 키워드가 없다면 DB 세팅할 필요없이 종료
-      if (isArrayEmpty(ceResult)) return true;
+      filterResult = await this.removeExistingKeywords(userId, ceResult);
+      if (isArrayEmpty(filterResult)) return true;
 
       //2. 추출된 키워드를 UserKeyword와 FromCL에 세팅
       const conn = await this.pool.getConnection();
       try {
         await conn.beginTransaction(); // START TRANSACTION
 
-        ceResult.forEach(async (k: IKeyword) => {
+        filterResult.forEach(async (k: IKeyword) => {
           //2-1. 유저키워드를 테이블에 넣고, 삽입되었을때의 insertId를 가져온다.
           const userKeywordId = await this.insertUserKeyword(conn, k, userId);
-
           //2-2. 키워드 인덱스를 insertId를 이용해 테이블에 넣는다.
           if (k.indices === undefined) return false;
           for (const indexInfo of k.indices) {
@@ -191,6 +194,36 @@ export default class KeywordService {
       console.log(error);
       return false;
     }
+  }
+
+  /**
+   * removeExistingKeywords
+   * @param userId
+   * @param newKeywords
+   * @returns
+   */
+  private async removeExistingKeywords(
+    userId: number,
+    newKeywords: IKeyword[]
+  ): Promise<IKeyword[]> {
+    const query = `SELECT UK.keyword_id FROM UserKeyword AS UK WHERE UK.user_id = ?`;
+    const [result] = (await this.pool.query(query, [userId])) as any;
+
+    const existingKeywordIds = result.map((e: any) => e.keyword_id);
+
+    let filteredKeywords: IKeyword[] = [];
+    newKeywords.forEach((newKeyword: IKeyword) => {
+      let isNotDuplicated = true;
+      for (let id of existingKeywordIds) {
+        if (newKeyword.id === id) {
+          isNotDuplicated = false;
+          break;
+        }
+      }
+      if (isNotDuplicated) filteredKeywords.push(newKeyword);
+    });
+
+    return filteredKeywords;
   }
 
   /**

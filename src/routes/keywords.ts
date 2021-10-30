@@ -5,7 +5,7 @@ import { Logger } from "winston";
 
 import CLService from "../services/cl";
 import config from "../config";
-import { IUserInputDTO } from "../interfaces/IUser";
+import { IUser } from "../interfaces/IUser";
 import { resourceLimits } from "worker_threads";
 import TestService from "../services/test";
 import KeywordService from "../services/keyword";
@@ -24,9 +24,7 @@ export default (app: Router) => {
     logger.debug(`Calling GET '/api/keywords'`);
 
     try {
-      const { user_id: userId } = (req.user as any) || {
-        user_id: config.constUserId,
-      };
+      const { userId } = (req.user as IUser) || { userId: config.constUserId };
       const keywordServiceInstance = Container.get(KeywordService);
       const [statusCode, keywords] =
         await keywordServiceInstance.getUserKeywords(userId);
@@ -47,7 +45,9 @@ export default (app: Router) => {
       logger.debug(`Calling POST '/api/keywords/read', req.body: %o`, req.body);
 
       try {
-        const { user_id: userId } = (req.user as any) || { user_id: 7 };
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
+        };
         const { user_keyword_id } = req.body;
         const keywordServiceInstance = Container.get(KeywordService);
         const result = await keywordServiceInstance.updateKeywordRead(
@@ -75,7 +75,9 @@ export default (app: Router) => {
       );
 
       try {
-        const { user_id: userId } = (req.user as any) || { user_id: 7 };
+        const { userId } = (req.user as IUser) || {
+          userId: config.constUserId,
+        };
         const keywordId = parseInt(req.body.keywordId);
 
         const keywordServiceInstance = Container.get(KeywordService);

@@ -5,7 +5,7 @@ import { randomBytes } from "crypto";
 import { Logger, loggers } from "winston";
 import crypto from "crypto";
 
-import { IUser, IUserInputDTO } from "../interfaces/IUser";
+import { IUser } from "../interfaces/IUser";
 import { json } from "express";
 import { resolve } from "path/posix";
 
@@ -30,7 +30,7 @@ export default class UserService {
   ): Promise<{ user: IUser; token: string }> {
     const pool = Container.get<mysql2.Pool>("pool");
 
-    const dummyUser: IUser = {
+    const dummyUser: any = {
       _id: "sample id",
       nickname: "기운찬 곰",
       email: email,

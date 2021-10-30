@@ -60,11 +60,11 @@ export default class CLService {
           clId
         );
 
-        // 이미있는 자소서니까 UPDATE OR DoNothing
-        if (cleFromDB !== undefined) {
+        // 자소서가 저장되어있으니, UPDATE OR DoNothing
+        if (cleFromDB) {
           const isSameCLE = this.compareCLE(cleFromFront, cleFromDB);
-          // 수정된 자소서라면
-          if (isSameCLE === true) {
+          // 다른자소서라면
+          if (!isSameCLE) {
             // 새롭게 추출될 자기소개서문항을 저장.
             toBeKeywordExtracted.push(cleFromFront.answer);
 
@@ -78,10 +78,6 @@ export default class CLService {
             if (!isSucesss) return 500;
 
             // 기존 데이터를 삭제한다.
-          }
-          // 그대로인 자소서라면
-          else if (isSameCLE === false) {
-            // pass
           }
         }
         // 존재하지 않는 자소서니까 INSERT
@@ -109,7 +105,6 @@ export default class CLService {
       // 추출할게 있는경우에만 CE로 키워드 분석 요청
       if (toBeKeywordExtracted.length > 0) {
         try {
-          //나중에 이렇게 바궈야할듯
           const isSuccess =
             await this.keywordServiceInstance.extractKeywordsThroughCE(
               userId,
@@ -121,10 +116,6 @@ export default class CLService {
         }
 
         await connection.release();
-      }
-      // 추출할게 없는 경우는
-      else {
-        // do nothing
       }
       return 200;
     }
@@ -140,7 +131,7 @@ export default class CLService {
     clElementId: number,
     clId: number
   ) {
-    const query = `SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ?`;
+    const query = `SELECT E.problem, E.answer FROM CLElement E WHERE E.cl_element_id = ? AND E.cl_id = ? LIMIT 1`;
     const [result] = (await conn.query(query, [clElementId, clId])) as any;
     return result[0];
   }
@@ -265,7 +256,6 @@ export default class CLService {
     // 먼저 clId를 DB에서 체크한다.
     const query = `SELECT cl_id FROM CL WHERE user_id = ? LIMIT 1`;
     const [result] = (await this.pool.query(query, [userId])) as any;
-    const clId = result[0].cl_id;
 
     // 없으면 새로만든다.
     if (!result.length) {
@@ -275,7 +265,7 @@ export default class CLService {
       const [result] = (await this.pool.query(query, [userId])) as any;
       return result.insertId;
     } else {
-      return clId;
+      return result[0].cl_id;
     }
   }
 }
