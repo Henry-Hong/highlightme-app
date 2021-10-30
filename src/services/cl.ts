@@ -222,13 +222,53 @@ export default class CLService {
     };
   }
 
-  private async getOrCreateCLId(userId: any) {
-    // 사용자의 clId를 받아온다.
-    const clId = await this.getCLIdFromUserId(userId);
+  /**
+   * C3 DELETE localhost:3001/api/cls
+   * 자기소개서항목 삭제
+   * @param index
+   * @param userId
+   * @returns
+   */
+  public async deleteCLE(index: number, userId: number): Promise<number> {
+    try {
+      // 1. get clId
+      const clId = await this.getOrCreateCLId(userId);
 
-    // clId가 없으면 유저의 clId정보를 만든다.
-    if (!clId) {
-      // 새롭게 만들어서 리턴한다.
+      // 2-1. delete coverletter element
+      const queryDelete = `DELETE FROM CLElement WHERE cl_element_id = ? AND cl_id = ?`;
+      const [resultDelete] = (await this.pool.query(queryDelete, [
+        index,
+        clId,
+      ])) as any;
+      if (resultDelete.affectedRows === 0) return 400;
+
+      // 2-2. arrange order of exsting elements
+      const queryRearrangeCLE = `UPDATE CLElement SET cl_element_id = cl_element_id - 1 WHERE cl_id = ? AND cl_element_id > ?`;
+      await this.pool.query(queryRearrangeCLE, [clId, index]);
+
+      // 3. element 삭제 -> user keyword[] 삭제 -> fromCL[] 삭제
+      // 근데 user keyword 를 삭제하는 과정이 복잡. 비정규화로 가고싶구나~
+
+      return 200;
+    } catch (error) {
+      console.log(error);
+      return 500;
+    }
+  }
+
+  /**
+   * getOrCreateCLId
+   * @param userId
+   * @returns
+   */
+  private async getOrCreateCLId(userId: any): Promise<number> {
+    // 먼저 clId를 DB에서 체크한다.
+    const query = `SELECT cl_id FROM CL WHERE user_id = ? LIMIT 1`;
+    const [result] = (await this.pool.query(query, [userId])) as any;
+    const clId = result[0].cl_id;
+
+    // 없으면 새로만든다.
+    if (!result.length) {
       const query = `
         INSERT INTO CL (user_id, title, company, tags, comments, view_num, user_question_num, created_at)
         VALUES (?, "init", "init", "init", "init", 0, 0, NOW())`;
@@ -238,71 +278,4 @@ export default class CLService {
       return clId;
     }
   }
-
-  /**
-   * C3 DELETE localhost:3001/api/cls
-   * 자기소개서항목 삭제
-   * @param index
-   * @param userId
-   * @returns
-   */
-  public async deleteCLE(index: number, userId: number): Promise<number> {
-    // 1. get clId
-    const clId = await this.getCLIdFromUserId(userId);
-
-    // 2-1. delete coverletter element
-    const queryDelete = `DELETE FROM CLElement WHERE cl_element_id = ? AND cl_id = ?`;
-    const [resultDelete] = (await this.pool.query(queryDelete, [
-      index,
-      clId,
-    ])) as any;
-    if (resultDelete.affectedRows === 0) return 400;
-
-    // 2-2. arrange order of exsting elements
-    const queryRearrangeCLE = `UPDATE CLElement SET cl_element_id = cl_element_id - 1 WHERE cl_id = ? AND cl_element_id > ?`;
-    const [resultRearrange] = (await this.pool.query(queryRearrangeCLE, [
-      clId,
-      index,
-    ])) as any;
-    if (resultRearrange.affectedRows === 0) return 400;
-
-    // 3. element 삭제 -> user keyword[] 삭제 -> fromCL[] 삭제
-    // 근데 user keyword 를 삭제하는 과정이 복잡. 비정규화로 가고싶구나~
-
-    return 200;
-  }
-
-  private async getCLIdFromUserId(userId: number): Promise<number> {
-    const query = `
-      SELECT cl_id FROM CL WHERE user_id = ? LIMIT 1`;
-    const [result] = (await this.pool.query(query, [userId])) as any;
-    // 없으면 return clId = 0
-    let clId = 0;
-    return result.length === 0 ? (clId = 0) : (clId = result[0].cl_id);
-  }
 }
-
-// private makeClesDbFormat(CLES: any, cl_id: any) {
-//     let elements = [] as any;
-//     let rows = [] as any;
-//     let pCLES = JSON.parse(CLES);
-//     pCLES.map(
-//       (CLE: {
-//         cl_element_id: string;
-//         problem: any;
-//         answer: any;
-//         _public: any;
-//       }) => {
-//         let row = [];
-//         row.push(parseInt(CLE.cl_element_id));
-//         row.push(CLE.problem);
-//         row.push(CLE.answer);
-//         row.push(parseInt(CLE._public));
-//         row.push(cl_id);
-//         rows.push(row);
-
-//         elements.push(CLE.answer);
-//       }
-//     );
-//     return { clesData: rows, answerData: elements };
-//   }
