@@ -3,5 +3,5 @@
 export interface IKeyword {
   id: number;
   keyword: string | undefined;
-  indices: number[][];
+  indices?: number[][];
 }
