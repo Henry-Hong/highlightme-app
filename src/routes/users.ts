@@ -67,7 +67,9 @@ export default (app: Router) => {
       failureRedirect: "/fail",
     }),
     (req, res) => {
-      res.status(200).json(req.user);
+      const { newUser } = parseObject(req.user);
+      if (newUser) res.status(200).json(req.user);
+      else res.status(409).json(req.user);
     }
   );
 

@@ -10,9 +10,17 @@ import { IUser } from "../interfaces/IUser";
 export default () => {
   passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
     if (user.provider == "google") {
-      done(undefined, { userId: user.userId, email: user.email }); //세션에 자동 저장
+      done(undefined, {
+        userId: user.userId,
+        email: user.email,
+        newUser: user.newUser,
+      }); //세션에 자동 저장
     } else {
-      done(undefined, { userId: user.userId, email: user.email });
+      done(undefined, {
+        userId: user.userId,
+        email: user.email,
+        newUser: user.newUser,
+      });
     }
     // 다른 oauth 등록 하려면 console.log(user) 먼저 해보기!
     // else if (user.provider == "kakao") {
@@ -118,12 +126,12 @@ export default () => {
             const pResult = parseObject(result);
             const userId = pResult.insertId;
 
-            return done(null, { userId, email });
+            return done(null, { userId, email, newUser: true });
           }
 
           //이미 존재하는 계정의 경우, 로그인진행
           const userId = result[0].user_id;
-          return done(null, { userId, email });
+          return done(null, { userId, email, newUser: false });
         } catch (error: any) {
           return done(error);
         }
