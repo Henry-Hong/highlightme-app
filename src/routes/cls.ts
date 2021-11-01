@@ -64,7 +64,7 @@ export default (app: Router) => {
 
     try {
       const { userId } = (req.user as IUser) || { userId: config.constUserId };
-      const { index } = req.body;
+      const { cl_element_id: index } = req.body;
       const clServiceInstance = Container.get(CLService);
       const statusCode = await clServiceInstance.deleteCLE(
         parseInt(index),
