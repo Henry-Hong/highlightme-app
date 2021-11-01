@@ -296,24 +296,36 @@ export default class questionService {
     userId: number,
     sentence: string
   ): Promise<IQuestion | undefined> {
-    //1. 답변을 코어엔진에게 키워드 추출 요청
-    const keywords = await this.getKeywordsThroughCE(sentence);
-    if (!keywords) return undefined; //Error Check
-    let keywordIds = keywords.map((k) => k.id);
+    try {
+      //1. 답변을 코어엔진에게 키워드 추출 요청
+      const keywords = await this.getKeywordsThroughCE(sentence);
+      if (!keywords) return undefined; //Error Check
+      let keywordIds = keywords.map((k) => k.id);
 
-    // 2. UserKeyword 테이블에 방금 가져온 키워드와 겹치는 것을 가져옵니다.
-    const query = `
+      // 2. UserKeyword 테이블에 방금 가져온 키워드와 겹치는 것을 가져옵니다.
+      const queryGetTailQ = `
       SELECT Q.question_id id, T.keyword_id keywordId, Q.content FROM Question Q INNER JOIN (
         SELECT question_id, keyword_id FROM KeywordsQuestions WHERE keyword_id IN (?) AND question_id NOT IN (
         SELECT question_id FROM UserQuestion WHERE user_id = ?)) T ON Q.question_id = T.question_id
         ORDER BY RAND() LIMIT 1`;
-    const [result] = (await conn.query(query, [keywordIds, userId])) as any;
+      const [result] = (await conn.query(queryGetTailQ, [
+        keywordIds,
+        userId,
+      ])) as any;
 
-    if (!result) return undefined;
+      if (!result) return undefined;
 
-    let tailQuestion = iDbQuestionToIQuestion(result[0]);
-    tailQuestion.keywordId = result[0].keywordId;
-    return tailQuestion;
+      let tailQuestion = iDbQuestionToIQuestion(result[0]);
+      tailQuestion.keywordId = result[0].keywordId;
+
+      // 3. tailQuestion을 UserQuestion으로 등록합니다!
+      const queryInsertTailQ = `INSERT INTO UserQuestion (user_id, question_id) VALUES (?, ?)`;
+      await conn.query(queryInsertTailQ, [userId, tailQuestion.keywordId]);
+
+      return tailQuestion;
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async getQuestionIdsFromKeywordId(
@@ -323,6 +335,38 @@ export default class questionService {
       SELECT question_id FROM KeywordsQuestions WHERE keyword_id = ?`;
     const [result] = (await this.pool.query(query, [keywordId])) as any;
     return result.map((row: any) => row.question_id);
+  }
+
+  /**
+   * removeExistingQuestions
+   * @param userId
+   * @param newQuestionIds
+   * @returns
+   */
+  private async removeExistingQuestions(
+    userId: number,
+    newQuestionIds: number[]
+  ): Promise<number[]> {
+    // 꼬리질문에 의해 이미 생성된 질문이 있을 수 있음.
+    // 일단은 존재하는 모든 질문풀에서 필터링하도록 개발.
+    const query = `SELECT UQ.question_id FROM UserQuestion AS UQ WHERE UQ.user_id = ?`;
+    const [result] = (await this.pool.query(query, [userId])) as any;
+
+    const existingQuestionIds = result.map((e: any) => e.question_id);
+
+    let filteredQuestionIds: number[] = [];
+    newQuestionIds.forEach((newQuestionId: number) => {
+      let isNotDuplicated = true;
+      for (let id of existingQuestionIds) {
+        if (newQuestionId === id) {
+          isNotDuplicated = false;
+          break;
+        }
+      }
+      if (isNotDuplicated) filteredQuestionIds.push(newQuestionId);
+    });
+
+    return filteredQuestionIds;
   }
 
   /**
@@ -336,10 +380,13 @@ export default class questionService {
     questionIds: number[]
   ): Promise<Boolean> {
     try {
+      // 만약에 이미 있는 questionIds 라면 제외시켜야됨. (꼬리질문으로 생성되었을경우)
+      questionIds = await this.removeExistingQuestions(userId, questionIds);
       const formattedUserQuestions = questionIds.map((questionId) => [
         userId,
         questionId,
       ]);
+
       const queryMakeUserQuestions = `
       INSERT INTO UserQuestion (user_id, question_id)
       VALUES ?`;
