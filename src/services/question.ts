@@ -320,7 +320,7 @@ export default class questionService {
 
       // 3. tailQuestion을 UserQuestion으로 등록합니다!
       const queryInsertTailQ = `INSERT INTO UserQuestion (user_id, question_id, answer) VALUES (?, ?, "")`;
-      await conn.query(queryInsertTailQ, [userId, tailQuestion.keywordId]);
+      await conn.query(queryInsertTailQ, [userId, tailQuestion.id]);
 
       return tailQuestion;
     } catch (error) {
